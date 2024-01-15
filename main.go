@@ -4,21 +4,29 @@ import (
 	"afho__backend/botClient"
 	"afho__backend/utils"
 	"context"
+	"flag"
 	"log"
 	"os/signal"
 	"syscall"
 	"time"
 )
 
+var addCommandsFlag = flag.Bool("add-commands", false, "Add new commands to discord servers")
+var delCommandsFlag = flag.Bool("del-commands", false, "Delete commands from discord servers")
+
 func main() {
-	var env = utils.LoadEnv()
-	var botClient botClient.BotClient
-	botClient.Init(env)
+	flag.Parse()
+	var env = utils.LoadEnv(utils.Flags{
+		AddCommands: addCommandsFlag,
+		DelCommands: delCommandsFlag,
+	})
+	var Client botClient.BotClient
+	Client.Init(env)
 
 	ticker := time.NewTicker(time.Minute)
-	go everyMinuteLoop(ticker, &botClient)
+	go everyMinuteLoop(ticker, &Client)
 
-	gracefulShutdown(&botClient, *ticker)
+	gracefulShutdown(&Client, *ticker)
 }
 
 func everyMinuteLoop(ticker *time.Ticker, client *botClient.BotClient) {
@@ -32,7 +40,8 @@ func gracefulShutdown(client *botClient.BotClient, ticker time.Ticker) {
 	defer stop()
 
 	<-ctx.Done()
-	log.Println("got interruption signal")
+	log.Println("Gracefully Shutting Down!")
+
 	if err := client.Discord.Close(); err != nil {
 		log.Fatalln(err.Error())
 	}
