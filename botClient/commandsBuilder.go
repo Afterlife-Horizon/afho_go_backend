@@ -18,32 +18,27 @@ func (builder *CommandsBuilder) AddCommand(command *discordgo.ApplicationCommand
 
 func (builder *CommandsBuilder) Init() {
 	builder.AddCommand(&discordgo.ApplicationCommand{
-		Name:        "test1",
-		Description: "Test command",
-	})
-	builder.AddCommand(&discordgo.ApplicationCommand{
-		Name:        "test2",
-		Description: "Test command 2",
+		Name:        "join",
+		Description: "Make the bot join the voice Channel you are currently in",
 	})
 	builder.initHandlers()
 }
 
 func (builder *CommandsBuilder) initHandlers() {
 	builder.Handlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"test1": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "test1",
-				},
-			})
-		},
-		"test2": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "test2",
-				},
+		"join": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var voiceState, err = s.State.VoiceState(i.GuildID, i.Member.User.ID)
+			if err != nil {
+				log.Println(err.Error())
+				interactionReply(s, i, &discordgo.InteractionResponseData{
+					Content: "Could not join voice channel",
+				})
+				return
+			}
+
+			s.ChannelVoiceJoin(voiceState.GuildID, voiceState.ChannelID, false, true)
+			interactionReply(s, i, &discordgo.InteractionResponseData{
+				Content: "joined voice channel",
 			})
 		},
 	}
@@ -68,4 +63,11 @@ func (builder *CommandsBuilder) DeleteCommands(client *BotClient) {
 			log.Printf("Cannot delete '%v' command: %v\n", command.Name, err)
 		}
 	}
+}
+
+func interactionReply(s *discordgo.Session, i *discordgo.InteractionCreate, message *discordgo.InteractionResponseData) {
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: message,
+	})
 }

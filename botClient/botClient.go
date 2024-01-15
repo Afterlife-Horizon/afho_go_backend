@@ -63,3 +63,4 @@ func (b *BotClient) Init(env utils.Env) {
 
 	fmt.Printf("Started session as %v\n", discord.State.User.Username)
 }
+
