@@ -12,6 +12,7 @@ type BotClient struct {
 	Config          utils.Env
 	Discord         *discordgo.Session
 	CacheHandler    *CacheHandler
+	MusicHandler    *MusicHandler
 	CommandsBuilder *CommandsBuilder
 	Commands        []*discordgo.ApplicationCommand
 }
@@ -31,10 +32,10 @@ func (b *BotClient) Init(env utils.Env) {
 	discord.AddHandler(VoiceStateUpdate(b))
 	discord.AddHandler(InteractionCreate(b))
 	discord.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
-		log.Println("Bot is up!")
+		log.Println("Ready to operate!")
 
 		var commandsBuilder = CommandsBuilder{}
-		commandsBuilder.Init()
+		commandsBuilder.Init(b)
 
 		b.CommandsBuilder = &commandsBuilder
 
@@ -49,9 +50,15 @@ func (b *BotClient) Init(env utils.Env) {
 
 		var cacheHandler CacheHandler
 		cacheHandler.Init(b)
-		log.Println("Started Cache Handler")
+		log.Println("Initialised Cache Handler")
 
 		b.CacheHandler = &cacheHandler
+
+		var musicHandler MusicHandler
+		musicHandler.Init(b)
+		log.Println("Initialised Music Handler")
+
+		b.MusicHandler = &musicHandler
 	})
 
 	discord.Identify.Intents = discordgo.IntentsAll
@@ -63,4 +70,3 @@ func (b *BotClient) Init(env utils.Env) {
 
 	fmt.Printf("Started session as %v\n", discord.State.User.Username)
 }
-

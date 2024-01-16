@@ -1,6 +1,8 @@
 package botClient
 
 import (
+	"afho__backend/utils"
+	"afho__backend/utils/commands"
 	"log"
 
 	"github.com/bwmarrin/discordgo"
@@ -16,30 +18,57 @@ func (builder *CommandsBuilder) AddCommand(command *discordgo.ApplicationCommand
 	return nil
 }
 
-func (builder *CommandsBuilder) Init() {
+func (builder *CommandsBuilder) Init(client *BotClient) {
 	builder.AddCommand(&discordgo.ApplicationCommand{
 		Name:        "join",
-		Description: "Make the bot join the voice Channel you are currently in",
+		Description: "Make the bot join the voice channel you are currently in",
 	})
-	builder.initHandlers()
+	builder.AddCommand(&discordgo.ApplicationCommand{
+		Name:        "leave",
+		Description: "Make the bot leave the voice channel",
+	})
+	builder.AddCommand(&discordgo.ApplicationCommand{
+		Name:        "play",
+		Description: "Play music in the voice channel you are in",
+		Options: []*discordgo.ApplicationCommandOption{{
+			Type:        discordgo.ApplicationCommandOptionString,
+			Name:        "input",
+			Description: "Name or URL of the video to play",
+			Required:    true,
+		}},
+	})
+	builder.initHandlers(client)
 }
 
-func (builder *CommandsBuilder) initHandlers() {
+func (builder *CommandsBuilder) initHandlers(client *BotClient) {
 	builder.Handlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"join": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			var voiceState, err = s.State.VoiceState(i.GuildID, i.Member.User.ID)
-			if err != nil {
-				log.Println(err.Error())
-				interactionReply(s, i, &discordgo.InteractionResponseData{
-					Content: "Could not join voice channel",
+			var returnValue = commands.HandleJoin(s, i.GuildID, i.Member.User.ID)
+
+			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
+				Content: returnValue,
+			})
+		},
+		"leave": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var returnValue = commands.HandleLeave(s, i.GuildID, i.Member.User.ID)
+
+			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
+				Content: returnValue,
+			})
+		},
+		"play": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if i.ApplicationCommandData().Options[0] == nil {
+				utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
+					Content: "",
 				})
 				return
 			}
+			var input = i.ApplicationCommandData().Options[0].StringValue()
 
-			s.ChannelVoiceJoin(voiceState.GuildID, voiceState.ChannelID, false, true)
-			interactionReply(s, i, &discordgo.InteractionResponseData{
-				Content: "joined voice channel",
+			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
+				Content: client.MusicHandler.Add(client, input, i.Message.Author.Username),
 			})
+
 		},
 	}
 }
@@ -63,11 +92,4 @@ func (builder *CommandsBuilder) DeleteCommands(client *BotClient) {
 			log.Printf("Cannot delete '%v' command: %v\n", command.Name, err)
 		}
 	}
-}
-
-func interactionReply(s *discordgo.Session, i *discordgo.InteractionCreate, message *discordgo.InteractionResponseData) {
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: message,
-	})
 }
