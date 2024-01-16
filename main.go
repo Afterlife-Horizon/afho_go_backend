@@ -42,7 +42,7 @@ func gracefulShutdown(client *botClient.BotClient, ticker time.Ticker) {
 	<-ctx.Done()
 	log.Println("Gracefully Shutting Down!")
 
-	if err := client.Discord.Close(); err != nil {
+	if err := client.Session.Close(); err != nil {
 		log.Fatalln(err.Error())
 	}
 

@@ -33,7 +33,7 @@ func LoadEnv(flags Flags) Env {
 
 	YTApiKey, ok := os.LookupEnv("YT_API_KEY")
 	if !ok {
-		log.Fatalln("YTApiKey not found in environment variables")
+		log.Fatalln("YT_API_KEY not found in environment variables")
 	}
 
 	return Env{

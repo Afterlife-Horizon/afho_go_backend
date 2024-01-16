@@ -54,7 +54,7 @@ func (c *CacheHandler) updateGuildCache(client *BotClient) {
 }
 
 func (c *CacheHandler) cacheGuild(client *BotClient, wg *sync.WaitGroup) {
-	guild, err := client.Discord.Guild(client.Config.GuildID)
+	guild, err := client.Session.Guild(client.Config.GuildID)
 	if err != nil {
 		return
 	}
@@ -66,7 +66,7 @@ func (c *CacheHandler) cacheGuild(client *BotClient, wg *sync.WaitGroup) {
 }
 
 func (c *CacheHandler) cacheMembers(client *BotClient, wg *sync.WaitGroup) {
-	members, err := client.Discord.GuildMembers(client.Config.GuildID, "", 1000)
+	members, err := client.Session.GuildMembers(client.Config.GuildID, "", 1000)
 	if err != nil {
 		return
 	}
@@ -81,7 +81,7 @@ func (c *CacheHandler) cacheMembers(client *BotClient, wg *sync.WaitGroup) {
 }
 
 func (c *CacheHandler) cacheChannels(client *BotClient, wg *sync.WaitGroup) {
-	channels, err := client.Discord.GuildChannels(client.Config.GuildID)
+	channels, err := client.Session.GuildChannels(client.Config.GuildID)
 	if err != nil {
 		return
 	}
@@ -119,7 +119,7 @@ func (c *CacheHandler) updateConnectedMembers(client *BotClient, wg *sync.WaitGr
 
 	c.MembersMutex.RLock()
 	for _, member := range c.Members.Data {
-		var _, err = client.Discord.State.VoiceState(client.Config.GuildID, member.User.ID)
+		var _, err = client.Session.State.VoiceState(client.Config.GuildID, member.User.ID)
 		if err != nil {
 			if err != discordgo.ErrStateNotFound {
 				log.Println(err.Error())

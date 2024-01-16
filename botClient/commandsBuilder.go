@@ -66,7 +66,7 @@ func (builder *CommandsBuilder) initHandlers(client *BotClient) {
 			var input = i.ApplicationCommandData().Options[0].StringValue()
 
 			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-				Content: client.MusicHandler.Add(client, input, i.Message.Author.Username),
+				Content: client.MusicHandler.Add(client, input, i.Member.User.Username, i.Member.User.ID),
 			})
 
 		},
@@ -76,7 +76,7 @@ func (builder *CommandsBuilder) initHandlers(client *BotClient) {
 func (builder *CommandsBuilder) RegisterCommands(client *BotClient) {
 	for index, command := range builder.Commands {
 		log.Printf("Adding command '%v'\n", command.Name)
-		cmd, err := client.Discord.ApplicationCommandCreate(client.Discord.State.User.ID, client.Config.GuildID, command)
+		cmd, err := client.Session.ApplicationCommandCreate(client.Session.State.User.ID, client.Config.GuildID, command)
 		if err != nil {
 			log.Printf("Cannot create '%v' command: %v\n", command.Name, err)
 		}
@@ -87,7 +87,7 @@ func (builder *CommandsBuilder) RegisterCommands(client *BotClient) {
 func (builder *CommandsBuilder) DeleteCommands(client *BotClient) {
 	for _, command := range builder.Commands {
 		log.Printf("Deleting command '%v'\n", command.Name)
-		err := client.Discord.ApplicationCommandDelete(client.Discord.State.User.ID, client.Config.GuildID, command.ID)
+		err := client.Session.ApplicationCommandDelete(client.Session.State.User.ID, client.Config.GuildID, command.ID)
 		if err != nil {
 			log.Printf("Cannot delete '%v' command: %v\n", command.Name, err)
 		}

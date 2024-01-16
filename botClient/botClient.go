@@ -10,9 +10,10 @@ import (
 
 type BotClient struct {
 	Config          utils.Env
-	Discord         *discordgo.Session
+	Session         *discordgo.Session
 	CacheHandler    *CacheHandler
 	MusicHandler    *MusicHandler
+	VoiceHandler    *VoiceHandler
 	CommandsBuilder *CommandsBuilder
 	Commands        []*discordgo.ApplicationCommand
 }
@@ -23,7 +24,7 @@ func (b *BotClient) Init(env utils.Env) {
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
-	b.Discord = discord
+	b.Session = discord
 	discord.ShouldReconnectOnError = false
 	discord.StateEnabled = true
 	discord.LogLevel = discordgo.LogError
@@ -59,6 +60,9 @@ func (b *BotClient) Init(env utils.Env) {
 		log.Println("Initialised Music Handler")
 
 		b.MusicHandler = &musicHandler
+
+		var voiceHandler = NewVoiceHandler(b)
+		b.VoiceHandler = &voiceHandler
 	})
 
 	discord.Identify.Intents = discordgo.IntentsAll
