@@ -42,6 +42,9 @@ func VoiceStateUpdate(client *BotClient) func(s *discordgo.Session, v *discordgo
 }
 
 func getStateChangeType(client *BotClient, newState *discordgo.VoiceStateUpdate) int {
+	if newState.Member.User.ID == client.Session.State.User.ID {
+		return -1
+	}
 	var oldState = newState.BeforeUpdate
 
 	client.CacheHandler.ChannelsMutex.RLock()

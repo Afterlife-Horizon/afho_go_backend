@@ -10,9 +10,9 @@ import (
 
 type CacheHandler struct {
 	Guild                 *discordgo.Guild
-	Members               utils.Collection[*discordgo.Member]
-	Channels              utils.Collection[*discordgo.Channel]
-	VoiceConnectedMembers utils.Collection[*discordgo.Member]
+	Members               *utils.Collection[*discordgo.Member]
+	Channels              *utils.Collection[*discordgo.Channel]
+	VoiceConnectedMembers *utils.Collection[*discordgo.Member]
 
 	GuildMutex                 sync.RWMutex
 	MembersMutex               sync.RWMutex
@@ -74,7 +74,7 @@ func (c *CacheHandler) cacheMembers(client *BotClient, wg *sync.WaitGroup) {
 	var membersCollection = utils.NewCollection[*discordgo.Member](members)
 
 	c.MembersMutex.Lock()
-	c.Members = membersCollection
+	c.Members = &membersCollection
 	c.MembersMutex.Unlock()
 
 	wg.Done()
@@ -86,10 +86,10 @@ func (c *CacheHandler) cacheChannels(client *BotClient, wg *sync.WaitGroup) {
 		return
 	}
 
-	var channgelsCollection = utils.NewCollection[*discordgo.Channel](channels)
+	var channelsCollection = utils.NewCollection[*discordgo.Channel](channels)
 
 	c.ChannelsMutex.Lock()
-	c.Channels = channgelsCollection
+	c.Channels = &channelsCollection
 	c.ChannelsMutex.Unlock()
 
 	wg.Done()
@@ -130,8 +130,9 @@ func (c *CacheHandler) updateConnectedMembers(client *BotClient, wg *sync.WaitGr
 	}
 	c.MembersMutex.RUnlock()
 
+	var voiceConnectedMembersCollection = utils.NewCollection[*discordgo.Member](voiceConnectedMembers)
 	c.VoiceConnectedMembersMutex.Lock()
-	c.VoiceConnectedMembers = utils.NewCollection[*discordgo.Member](voiceConnectedMembers)
+	c.VoiceConnectedMembers = &voiceConnectedMembersCollection
 	c.VoiceConnectedMembersMutex.Unlock()
 
 	wg.Done()

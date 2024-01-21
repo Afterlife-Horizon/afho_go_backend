@@ -8,9 +8,16 @@ import (
 )
 
 type Env struct {
+	// Tokens
 	Discord_token string
-	GuildID       string
 	YTApiKey      string
+
+	// IDs
+	GuildID         string
+	BaseChannelID   string
+	BrasilChannelID string
+
+	// Flags
 	Flags
 }
 
@@ -36,10 +43,22 @@ func LoadEnv(flags Flags) Env {
 		log.Fatalln("YT_API_KEY not found in environment variables")
 	}
 
+	BaseChannelID, ok := os.LookupEnv("BASE_CHANNEL_ID")
+	if !ok {
+		log.Fatalln("BASE_CHANNEL_ID not found in environment variables")
+	}
+
+	BrasilChannelID, ok := os.LookupEnv("BRASIL_CHANNEL_ID")
+	if !ok {
+		log.Fatalln("BRASIL_CHANNEL_ID not found in environment variables")
+	}
+
 	return Env{
-		Discord_token: discord_token,
-		GuildID:       guildID,
-		YTApiKey:      YTApiKey,
-		Flags:         flags,
+		Discord_token:   discord_token,
+		GuildID:         guildID,
+		YTApiKey:        YTApiKey,
+		BaseChannelID:   BaseChannelID,
+		BrasilChannelID: BrasilChannelID,
+		Flags:           flags,
 	}
 }
