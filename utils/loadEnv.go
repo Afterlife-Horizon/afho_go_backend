@@ -17,6 +17,12 @@ type Env struct {
 	BaseChannelID   string
 	BrasilChannelID string
 
+	// Database connection
+	DbUser    string
+	DbPass    string
+	DbName    string
+	DbAddress string
+
 	// Flags
 	Flags
 }
@@ -53,12 +59,36 @@ func LoadEnv(flags Flags) Env {
 		log.Fatalln("BRASIL_CHANNEL_ID not found in environment variables")
 	}
 
+	DbAddress, ok := os.LookupEnv("DB_ADDRESS")
+	if !ok {
+		log.Fatalln("DB_ADDRESS not found in environment variables")
+	}
+
+	DbName, ok := os.LookupEnv("DB_NAME")
+	if !ok {
+		log.Fatalln("DB_NAME not found in environment variables")
+	}
+
+	DbUser, ok := os.LookupEnv("DB_USER")
+	if !ok {
+		log.Fatalln("DB_USER not found in environment variables")
+	}
+
+	DbPass, ok := os.LookupEnv("DB_PASS")
+	if !ok {
+		log.Fatalln("DB_PASS not found in environment variables")
+	}
+
 	return Env{
 		Discord_token:   discord_token,
 		GuildID:         guildID,
 		YTApiKey:        YTApiKey,
 		BaseChannelID:   BaseChannelID,
 		BrasilChannelID: BrasilChannelID,
+		DbAddress:       DbAddress,
+		DbName:          DbName,
+		DbUser:          DbUser,
+		DbPass:          DbPass,
 		Flags:           flags,
 	}
 }

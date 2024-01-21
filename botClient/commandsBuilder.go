@@ -210,7 +210,7 @@ func (builder *CommandsBuilder) initHandlers(client *BotClient) {
 			})
 		},
 		"addontop": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if client.MusicHandler.Queue.tracks.Data == nil || len(client.MusicHandler.Queue.tracks.Data) == 0 {
+			if client.MusicHandler.Queue.Tracks.Data == nil || len(client.MusicHandler.Queue.Tracks.Data) == 0 {
 				utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
 					Content: "Please use /play instead",
 				})

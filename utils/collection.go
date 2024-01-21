@@ -133,3 +133,16 @@ func Map[T, U any](collection *Collection[T], fn func(T) U) *Collection[U] {
 	collection.RUnlock()
 	return &result
 }
+
+func (collection *Collection[T]) Filter(fn func(T) bool) *Collection[T] {
+	var result = NewCollection[T](make([]T, 0))
+
+	collection.RLock()
+	for _, item := range collection.Data {
+		if fn(item) {
+			result.Data = append(result.Data, item)
+		}
+	}
+	collection.RUnlock()
+	return &result
+}

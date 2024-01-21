@@ -2,6 +2,7 @@ package botClient
 
 import (
 	"afho__backend/utils"
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 type BotClient struct {
 	Config          utils.Env
+	DB              *sql.DB
 	Session         *discordgo.Session
 	CacheHandler    *CacheHandler
 	MusicHandler    *MusicHandler
@@ -19,8 +21,9 @@ type BotClient struct {
 	Commands        []*discordgo.ApplicationCommand
 }
 
-func (b *BotClient) Init(env utils.Env) {
+func (b *BotClient) Init(env utils.Env, db *sql.DB) {
 	b.Config = env
+	b.DB = db
 	discord, err := discordgo.New("Bot " + env.Discord_token)
 	if err != nil {
 		log.Fatalln(err.Error())
