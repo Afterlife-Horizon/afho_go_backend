@@ -3,6 +3,7 @@ package botClient
 import (
 	"afho__backend/utils"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,6 +12,8 @@ import (
 )
 
 type BotClient struct {
+	Ready           bool
+	ReadyChannel    chan bool
 	Config          utils.Env
 	DB              *sql.DB
 	Session         *discordgo.Session
@@ -18,7 +21,6 @@ type BotClient struct {
 	MusicHandler    *MusicHandler
 	VoiceHandler    *VoiceHandler
 	CommandsBuilder *CommandsBuilder
-	Commands        []*discordgo.ApplicationCommand
 }
 
 func (b *BotClient) Init(env utils.Env, db *sql.DB) {
@@ -37,7 +39,7 @@ func (b *BotClient) Init(env utils.Env, db *sql.DB) {
 	discord.AddHandler(VoiceStateUpdate(b))
 	discord.AddHandler(InteractionCreate(b))
 	discord.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
-		log.Println("Ready to operate!")
+		b.ReadyChannel = make(chan bool)
 
 		var cacheHandler CacheHandler
 		cacheHandler.Init(b)
@@ -53,6 +55,7 @@ func (b *BotClient) Init(env utils.Env, db *sql.DB) {
 
 		var voiceHandler = NewVoiceHandler(b)
 		b.VoiceHandler = &voiceHandler
+		log.Println("Initialised Voice Handler")
 
 		var commandsBuilder = CommandsBuilder{}
 		commandsBuilder.Init(b)
@@ -62,6 +65,7 @@ func (b *BotClient) Init(env utils.Env, db *sql.DB) {
 		if *b.Config.DelCommands {
 			b.CommandsBuilder.DeleteCommands(b)
 		}
+
 		if *b.Config.Flags.AddCommands {
 			commandsBuilder.RegisterCommands(b)
 		}
@@ -70,6 +74,12 @@ func (b *BotClient) Init(env utils.Env, db *sql.DB) {
 			b.Session.Close()
 			os.Exit(0)
 		}
+
+		b.Ready = true
+		b.ReadyChannel <- true
+		log.Println("Discord Bot Ready!")
+
+		b.CacheHandler.UpdateCache(b)
 	})
 
 	discord.Identify.Intents = discordgo.IntentsAll
@@ -79,41 +89,77 @@ func (b *BotClient) Init(env utils.Env, db *sql.DB) {
 		log.Fatalln(err.Error())
 	}
 
-	fmt.Printf("Started session as %v\n", discord.State.User.Username)
+	log.Printf("Started session as %v\n", discord.State.User.Username)
 }
 
 func (b *BotClient) Close() {
 	b.Session.Close()
 }
 
-func (b *BotClient) BrazilUser(sender *discordgo.User, user *discordgo.User) string {
-	// check if user is in voice channel and if senderis in the same voice channel
+const (
+	bresil_sent = iota
+	bresil_recieved
+)
+
+func (b *BotClient) BrazilUser(sender *discordgo.User, user *discordgo.User) (string, error) {
+	// check if user is in voice channel and if senders in the same voice channel
 	var senderVoiceState, err = b.Session.State.VoiceState(b.Config.GuildID, sender.ID)
 	if err != nil {
 		log.Println(err.Error())
-		return "Could not find sender voice state"
+		return "Could not find sender voice state", err
 	}
 	var userVoiceState, err2 = b.Session.State.VoiceState(b.Config.GuildID, user.ID)
 	if err2 != nil {
 		log.Println(err2.Error())
-		return "Could not find user voice state"
+		return "Could not find user voice state", err2
 	}
 	if senderVoiceState.ChannelID != userVoiceState.ChannelID {
 		b.Session.ChannelMessageSend(b.Config.BaseChannelID, fmt.Sprintf("%v is not in the same voice channel as %v", user.Username, sender.Username))
-		return "User is not in the same voice channel as sender"
+		return "User is not in the same voice channel as sender", errors.New("user is not in the same voice channel as sender")
 	}
-
-	// TODO: modify database record
 
 	// check if user is already in brasil
 	var isInBrasil = userVoiceState.ChannelID == b.Config.BrasilChannelID
 	if isInBrasil {
 		b.Session.ChannelMessageSend(b.Config.BaseChannelID, fmt.Sprintf("%v is already in brasil", user.Username))
-		return "User is already in brasil"
+		return "User is already in brasil", errors.New("user is already in brasil")
 	}
 
 	// move user to brasil
 	b.Session.GuildMemberMove(b.Config.GuildID, user.ID, &b.Config.BrasilChannelID)
 	b.Session.ChannelMessageSend(b.Config.BaseChannelID, fmt.Sprintf("%v sent %v to brasil!", sender.Username, user.Username))
-	return "User sent to brasil"
+
+	// TODO: modify database record
+	bresilUser(b.DB, user, bresil_recieved)
+	bresilUser(b.DB, sender, bresil_sent)
+
+	return "User sent to brasil", nil
+}
+
+func bresilUser(DB *sql.DB, user *discordgo.User, updateType int) (string, error) {
+	var stmt *sql.Stmt
+	var err error
+	if updateType == bresil_sent {
+		stmt, err = DB.Prepare("INSERT INTO Bresil_count (user_id, bresil_received) VALUES (?, ?) ON DUPLICATE KEY UPDATE bresil_received = bresil_received+1")
+		if err != nil {
+			log.Println(err.Error())
+			return "Could not prepare statement", err
+		}
+	}
+	if updateType == bresil_recieved {
+		stmt, err = DB.Prepare("INSERT INTO Bresil_count (user_id, bresil_sent) VALUES (?, ?) ON DUPLICATE KEY UPDATE bresil_sent = bresil_sent+1")
+		if err != nil {
+			log.Println(err.Error())
+			return "Could not prepare statement", err
+		}
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(user.ID, 1)
+	if err != nil {
+		log.Println(err.Error())
+		return "Could not execute statement", err
+	}
+
+	return "User sent to brasil", nil
 }

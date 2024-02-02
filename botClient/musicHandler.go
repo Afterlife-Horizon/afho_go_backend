@@ -2,7 +2,6 @@ package botClient
 
 import (
 	"afho__backend/utils"
-	"afho__backend/utils/commands"
 	"context"
 	"errors"
 	"fmt"
@@ -33,6 +32,7 @@ var baseOpts = dca.EncodeOptions{
 	BufferedFrames:   100,
 	Threads:          1,
 	StartTime:        0,
+	AudioFilter:      "",
 }
 
 type Track struct {
@@ -70,6 +70,7 @@ type MusicHandler struct {
 	EncodeSession  *dca.EncodeSession
 	channel        chan error
 	stop           chan bool
+	Paused         bool
 }
 
 func (handler *MusicHandler) Init(client *BotClient) {
@@ -80,11 +81,30 @@ func (handler *MusicHandler) Init(client *BotClient) {
 		log.Println(err.Error())
 	}
 
+	handler.Queue = NewQueue()
 	handler.YoutubeClient = &youtubeClient
 	handler.YoutubeService = service
 }
 
-func (handler *MusicHandler) Add(client *BotClient, input string, requester string, requesterId string) string {
+func checkForChannel(discordClient *BotClient, requesterId string) error {
+
+	var _, err = discordClient.CacheHandler.VoiceConnectedMembers.Get(func(t *discordgo.Member) bool {
+		return t.User.ID == requesterId
+	})
+	if err != nil {
+		return errors.New("not in a voice channel")
+	}
+
+	return nil
+}
+
+func (handler *MusicHandler) Add(client *BotClient, input string, requester string, requesterId string, onTop bool) (string, error) {
+	err := checkForChannel(client, requesterId)
+	if err != nil {
+		return err.Error(), err
+	}
+	go HandleJoin(client.Session, client.Config.GuildID, requesterId)
+
 	// var youtubRegex, _ = regexp.Compile(`/https?\:\/\/(?:www\.youtube(?:\-nocookie)?\.com\/|m\.youtube\.com\/|youtube\.com\/)?(?:ytscreeningroom\?vi?=|youtu\.be\/|vi?\/|user\/.+\/u\/\w{1,2}\/|embed\/|watch\?(?:.*\&)?vi?=|\&vi?=|\?(?:.*\&)?vi?=)([^#\&\?\n\/<>\"']*)/`)
 	var songRegex, _ = regexp.Compile(`https?:\/\/(www.youtube.com|youtube.com)\/watch\?v=(?P<videoID>[^#\&\?]*)(&list=(?:[^#\&\?]*))?`)
 	var playlistRegex, _ = regexp.Compile(`https?:\/\/(?:www.youtube.com|youtube.com)\/(?:playlist\?list=(?P<listID>[^#\&\?]*)|watch\?v=(?:[^#\&\?]*)&list=(?P<listID2>[^#\&\?]*))`)
@@ -109,98 +129,54 @@ func (handler *MusicHandler) Add(client *BotClient, input string, requester stri
 		}
 	}
 
-	// extract video id from url
-	var videoID string
-	if isYoutubeSong {
-		var tmp = songRegex.FindStringSubmatch(input)
-		for i, name := range songRegex.SubexpNames() {
-			if i != 0 && name != "" {
-				if tmp[i] == "" {
-					continue
-				}
-				videoID = tmp[i]
-			}
-		}
+	if onTop && isYoutubePlaylist {
+		return "Cannot add playlist on top of queue!", errors.New("cannot add playlist on top of queue")
 	}
 
-	fmt.Println(playlistID, videoID)
-
-	fmt.Println(input, isYoutubeSong, isYoutubePlaylist)
 	if !isYoutubeSong && isYoutubePlaylist {
-		fmt.Println("playlist")
-		handler.AddPlayList(input, requester, requesterId, playlistID)
+		err := handler.AddPlayList(input, requester, requesterId, playlistID)
+		if err != nil {
+			return err.Error(), err
+		}
 		returnValue = "Playlist added to queue!"
 	} else if isYoutubeSong && !isYoutubePlaylist {
-		var track, err = handler.AddSong(input, requester, requesterId)
+		var track, err = handler.AddSong(input, requester, requesterId, onTop)
 		if err != nil {
-			return err.Error()
+			return err.Error(), err
 		}
 		returnValue = fmt.Sprintf("Track %v by %v added to queue!", track.Title, track.Author)
 	} else if isYoutubeSong && isYoutubePlaylist {
-		handler.AddSongAndPlayList(input, requester, requesterId, playlistID, 0)
+		err := handler.AddSongAndPlayList(input, requester, requesterId, playlistID, 0)
+		if err != nil {
+			return err.Error(), err
+		}
 		returnValue = "Playlist added to queue!"
 	} else {
-		var track, err = handler.AddSongSearch(input, requester, requesterId)
+		var track, err = handler.AddSongSearch(input, requester, requesterId, onTop)
 		if err != nil {
-			return err.Error()
+			return err.Error(), err
 		}
 		returnValue = fmt.Sprintf("Track %v by %v added to queue!", track.Title, track.Author)
 	}
-
-	// fmt.Println(handler.Queue.tracks.Map(func(t Track) Track {
-	// 	return Track{
-	// 		Title:  t.Title,
-	// 		Author: t.Author,
-	// 	}
-	// }).ToString())
-	commands.HandleJoin(client.Session, client.Config.GuildID, requesterId)
 
 	if !handler.Queue.Playing {
 		var voiceConnection, ok = client.Session.VoiceConnections[client.Config.GuildID]
 		if !ok {
-			returnValue = "Could not get voiceConnection"
+			return "Could not get voiceConnection", errors.New("could not get voiceConnection")
 		}
 
 		go handler.DCA(client, handler.Queue.Tracks.Data[0].VideoURL, voiceConnection)
 	}
 
-	return returnValue
+	return returnValue, nil
 }
 
-func (handler *MusicHandler) AddOnTop(client *BotClient, input string, requester string, requesterId string) string {
-	return "Not implemented yet"
-	// // var youtubRegex, _ = regexp.Compile(`/^(https?:\/\/)?(www\.)?(m\.|music\.)?(youtube\.com|youtu\.?be)\/.+$/gi`)
-	// var playlistRegex, _ = regexp.Compile(`/^.*(list=)([^#\&\?]*).*/gi`)
-
-	// // var isYoutube = youtubRegex.MatchString(input)
-	// var isYoutubePlaylist = playlistRegex.MatchString(input)
-
-	// var returnValue string
-
-	// if isYoutubePlaylist {
-	// 	returnValue = "Cannot add playlist on top of queue"
-	// 	return returnValue
-	// }
-
-	// commands.HandleJoin(client.Session, client.Config.GuildID, requesterId)
-
-	// if !handler.Queue.Playing {
-	// 	var voiceConnection, ok = client.Session.VoiceConnections[client.Config.GuildID]
-	// 	if !ok {
-	// 		returnValue = "Could not get voiceConnection"
-	// 	}
-
-	// 	go handler.DCA(client, handler.Queue.tracks.Data[0].VideoURL, voiceConnection)
-	// }
-
-	// returnValue = fmt.Sprintf("Track '%v' by '%v' added to queue!", handler.Queue.tracks.Data[0].Title, handler.Queue.tracks.Data[0].Author)
-
-	// commands.HandleJoin(client.Session, client.Config.GuildID, requesterId)
-
-	// return returnValue
+func (handler *MusicHandler) AddOnTop(client *BotClient, input string, requester string, requesterId string) (string, error) {
+	return handler.Add(client, input, requester, requesterId, true)
 }
 
-func (handler *MusicHandler) AddSongSearch(input string, requester string, requesterId string) (Track, error) {
+// ---------------------------- Add Helpers ----------------------------
+func (handler *MusicHandler) AddSongSearch(input string, requester string, requesterId string, onTop bool) (Track, error) {
 	response, err := handler.YoutubeService.Search.List([]string{"id", "snippet"}).Q(input).MaxResults(1).Do()
 	if err != nil {
 		log.Println("Could not search for video!")
@@ -236,18 +212,22 @@ func (handler *MusicHandler) AddSongSearch(input string, requester string, reque
 		VideoURL:       "https://www.youtube.com/watch?v=" + id,
 		Title:          vid.Title,
 		Author:         vid.Author,
-		Thumbnail:      getMaxResThumbnail(vid.Thumbnails).URL,
+		Thumbnail:      utils.GetMaxResThumbnail(vid.Thumbnails).URL,
 		Duration:       vid.Duration,
 		DurationString: vid.Duration.String(),
 		requesterId:    requesterId,
 		RequestedBy:    requester,
 	}
 
+	if onTop {
+		handler.Queue.Tracks.InsertAt(1, track)
+		return track, nil
+	}
 	handler.Queue.Tracks.Insert(track)
 
 	return track, nil
 }
-func (handler *MusicHandler) AddSong(input string, requester string, requesterId string) (Track, error) {
+func (handler *MusicHandler) AddSong(input string, requester string, requesterId string, onTop bool) (Track, error) {
 	var id, err = youtube.ExtractVideoID(input)
 	if err != nil {
 		log.Println(err.Error())
@@ -273,23 +253,27 @@ func (handler *MusicHandler) AddSong(input string, requester string, requesterId
 		VideoURL:       "https://www.youtube.com/watch?v=" + id,
 		Title:          vid.Title,
 		Author:         vid.Author,
-		Thumbnail:      getMaxResThumbnail(vid.Thumbnails).URL,
+		Thumbnail:      utils.GetMaxResThumbnail(vid.Thumbnails).URL,
 		Duration:       vid.Duration,
 		DurationString: vid.Duration.String(),
 		requesterId:    requesterId,
 		RequestedBy:    requester,
 	}
 
+	if onTop {
+		handler.Queue.Tracks.InsertAt(1, track)
+		return track, nil
+	}
 	handler.Queue.Tracks.Insert(track)
 
 	return track, nil
 }
-func (handler *MusicHandler) AddPlayList(input string, requester string, requesterId string, playlistID string) {
+func (handler *MusicHandler) AddPlayList(input string, requester string, requesterId string, playlistID string) error {
 	response, err := handler.YoutubeService.Playlists.List([]string{"id", "snippet"}).Id(playlistID).Do()
 	if err != nil {
 		log.Println("Could not search for playlist!")
 		log.Println(err.Error())
-		return
+		return errors.New("could not search for playlist")
 	}
 
 	var id string
@@ -299,17 +283,16 @@ func (handler *MusicHandler) AddPlayList(input string, requester string, request
 
 	if id == "" {
 		log.Println("Playlist not found")
-		return
+		return errors.New("playlist not found")
 	}
 
 	playlist, err := handler.YoutubeClient.GetPlaylist(id)
 	if err != nil {
 		log.Println(err.Error())
 		log.Println("Could not get playlist info!")
-		return
+		return errors.New("could not get playlist info")
 	}
 
-	fmt.Println("Queue: ", handler.Queue)
 	if handler.Queue == nil {
 		handler.Queue = NewQueue()
 		fmt.Println("Queue: ", handler.Queue)
@@ -332,13 +315,13 @@ func (handler *MusicHandler) AddPlayList(input string, requester string, request
 
 			var track = Track{
 				Video:          video,
-				ID:             id,
+				ID:             video.ID,
 				VideoURL:       "https://www.youtube.com/watch?v=" + video.ID,
 				Title:          video.Title,
 				Author:         video.Author,
-				Thumbnail:      getMaxResThumbnail(video.Thumbnails).URL,
+				Thumbnail:      utils.GetMaxResThumbnail(video.Thumbnails).URL,
 				Duration:       video.Duration,
-				DurationString: video.Duration.String(),
+				DurationString: utils.FormatTime(video.Duration),
 				requesterId:    requesterId,
 				RequestedBy:    requester,
 			}
@@ -351,25 +334,37 @@ func (handler *MusicHandler) AddPlayList(input string, requester string, request
 	wg.Wait()
 
 	handler.Queue.Tracks.Insert(tracks...)
+	return nil
 }
-func (handler *MusicHandler) AddSongAndPlayList(input string, requester string, playlistID string, requesterId string, baseIndex int) {
-	handler.AddPlayList(input, requester, requesterId, playlistID)
+func (handler *MusicHandler) AddSongAndPlayList(input string, requester string, playlistID string, requesterId string, baseIndex int) error {
+	return handler.AddPlayList(input, requester, requesterId, playlistID)
 }
 
-func getMaxResThumbnail(thumbnails youtube.Thumbnails) youtube.Thumbnail {
-	var maxResThumbnail youtube.Thumbnail = youtube.Thumbnail{
-		Width:  0,
-		Height: 0,
+// ---------------------------- Queue Helpers ----------------------------
+func (handler *MusicHandler) Shuffle(client *BotClient) {
+	handler.Queue.Tracks.Shuffle(1, len(handler.Queue.Tracks.Data), 3)
+	fmt.Println(handler.Queue.Tracks.ToString())
+}
+
+func (handler *MusicHandler) ClearQueue(client *BotClient) {
+	if len(handler.Queue.Tracks.Data) <= 0 {
+		return
 	}
-	for _, thumbnail := range thumbnails {
-		if maxResThumbnail.Height <= thumbnail.Height && maxResThumbnail.Width <= thumbnail.Width {
-			maxResThumbnail = thumbnail
-		}
-	}
-
-	return maxResThumbnail
+	handler.Queue.Tracks.Data = []Track{handler.Queue.Tracks.Data[0]}
 }
 
+func (handler *MusicHandler) Remove(client *BotClient, index int) {
+	handler.Queue.Tracks.RemoveItemAtIndex(index)
+}
+
+func (handler *MusicHandler) Move(client *BotClient, from int, to int) {
+	if from < 1 || from > len(handler.Queue.Tracks.Data) || to < 1 || to > len(handler.Queue.Tracks.Data) {
+		return
+	}
+	handler.Queue.Tracks.Data[from], handler.Queue.Tracks.Data[to] = handler.Queue.Tracks.Data[to], handler.Queue.Tracks.Data[from]
+}
+
+// ---------------------------- Queue Handlers ----------------------------
 func (handler *MusicHandler) DCA(client *BotClient, url string, voiceConnection *discordgo.VoiceConnection) {
 	opts := &baseOpts
 	opts.StartTime = int(handler.Queue.SeekPosition.Abs().Seconds())
@@ -454,8 +449,16 @@ func (handler *MusicHandler) handleQueue(client *BotClient, voiceConnection *dis
 	handler.DCA(client, handler.Queue.Tracks.Data[0].VideoURL, voiceConnection)
 }
 
+// ---------------------------- Player Handlers ----------------------------
+func (handler *MusicHandler) Stop(client *BotClient) {
+	handler.channel <- nil
+	handler.Queue.Tracks.Data[0].Duration = 0
+	handler.ClearQueue(client)
+}
 func (handler *MusicHandler) SetPause(pause bool) {
 	handler.Stream.SetPaused(pause)
+	handler.Paused = pause
+	// handler.Queue.Playing = !pause
 }
 
 func (handler *MusicHandler) Seek(client *BotClient, position time.Duration) {
@@ -480,22 +483,23 @@ func (handler *MusicHandler) Skip(client *BotClient) {
 	handler.Queue.Tracks.Data[0].Duration = 0
 }
 
-func (handler *MusicHandler) Shuffle(client *BotClient) {
-	handler.Queue.Tracks.Shuffle(1, len(handler.Queue.Tracks.Data), 3)
-	fmt.Println(handler.Queue.Tracks.ToString())
+func (handler *MusicHandler) SkipTo(client *BotClient, index int) {
+	handler.Queue.Tracks.Shift(index - 1)
+	handler.channel <- nil
+	handler.Queue.Tracks.Data[0].Duration = 0
 }
 
-func (handler *MusicHandler) Clear(client *BotClient) {
-	handler.Queue.Tracks.Data = []Track{}
-}
+func (handler *MusicHandler) SetFilters(client *BotClient, filters string) {
+	baseOpts.AudioFilter = filters
 
-func (handler *MusicHandler) Remove(client *BotClient, index int) {
-	handler.Queue.Tracks.RemoveItemAtIndex(index)
-}
+	handler.stop <- true
+	handler.EncodeSession.Stop()
+	handler.EncodeSession.Cleanup()
+	handler.Queue.SeekPosition = handler.Queue.SeekPosition + handler.Stream.PlaybackPosition()
 
-func (handler *MusicHandler) Move(client *BotClient, from int, to int) {
-	if from < 1 || from > len(handler.Queue.Tracks.Data) || to < 1 || to > len(handler.Queue.Tracks.Data) {
+	var voiceConnection, ok = client.Session.VoiceConnections[client.Config.GuildID]
+	if !ok {
 		return
 	}
-	handler.Queue.Tracks.Data[from], handler.Queue.Tracks.Data[to] = handler.Queue.Tracks.Data[to], handler.Queue.Tracks.Data[from]
+	handler.DCA(client, handler.Queue.Tracks.Data[0].VideoURL, voiceConnection)
 }

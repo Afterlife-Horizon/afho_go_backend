@@ -16,47 +16,46 @@ import (
 )
 
 var db *sql.DB
+var apiHandler *api.Handler = &api.Handler{}
+var discordClient *botClient.BotClient = &botClient.BotClient{}
+
+var tickerMinute *time.Ticker = time.NewTicker(time.Minute)
+var env = utils.LoadEnv(utils.Flags{
+	AddCommands: addCommandsFlag,
+	DelCommands: delCommandsFlag,
+})
 
 var addCommandsFlag = flag.Bool("add-commands", false, "Add new commands to discord servers")
 var delCommandsFlag = flag.Bool("del-commands", false, "Delete commands from discord servers")
 
 func main() {
 	flag.Parse()
-	var env = utils.LoadEnv(utils.Flags{
-		AddCommands: addCommandsFlag,
-		DelCommands: delCommandsFlag,
-	})
 
-	initDBConnection(env)
+	initDBConnection()
+	initDiscordClient()
+	go initAPI()
 
-	Client := initDiscordClient(env)
+	go everyMinuteLoop()
 
-	ticker := time.NewTicker(time.Minute)
-	go everyMinuteLoop(ticker, Client)
-
-	initAPI(Client)
-
-	gracefulShutdown(Client, *ticker)
+	gracefulShutdown()
 }
 
-func everyMinuteLoop(ticker *time.Ticker, client *botClient.BotClient) {
-	for range ticker.C {
-		client.CacheHandler.UpdateCache(client)
+func everyMinuteLoop() {
+	// <-discordClient.ReadyChannel
+	for range tickerMinute.C {
+		discordClient.CacheHandler.UpdateCache(discordClient)
 	}
 }
 
-func initDiscordClient(env utils.Env) *botClient.BotClient {
-	var Client botClient.BotClient
-	Client.Init(env, db)
-	return &Client
+func initDiscordClient() {
+	discordClient.Init(env, db)
 }
 
-func initAPI(discodClient *botClient.BotClient) {
-	var apiHandler api.ApiHandler
-	apiHandler.InitAPI(discodClient)
+func initAPI() {
+	apiHandler.Init(discordClient)
 }
 
-func initDBConnection(env utils.Env) {
+func initDBConnection() {
 	cfg := mysql.Config{
 		User:                 env.DbUser,
 		Passwd:               env.DbPass,
@@ -76,19 +75,25 @@ func initDBConnection(env utils.Env) {
 	if pingErr != nil {
 		log.Fatal(pingErr)
 	}
-	log.Println("Connected!")
+	log.Println("DB Connected!")
 }
 
-func gracefulShutdown(client *botClient.BotClient, ticker time.Ticker) {
+func gracefulShutdown() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	<-ctx.Done()
 	log.Println("Gracefully Shutting Down!")
 
-	if err := client.Session.Close(); err != nil {
+	tickerMinute.Stop()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := apiHandler.Server.Shutdown(ctx); err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	ticker.Stop()
+	if err := discordClient.Session.Close(); err != nil {
+		log.Fatalln(err.Error())
+	}
 }

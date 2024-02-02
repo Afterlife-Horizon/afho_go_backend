@@ -11,6 +11,16 @@ func MessageCreate(client *BotClient) func(s *discordgo.Session, m *discordgo.Me
 		if m.Author.ID == s.State.User.ID {
 			return
 		}
+
+		stmt, err := client.DB.Prepare("INSERT INTO Levels (user_id, xp) VALUES (?, ?) ON DUPLICATE KEY UPDATE xp = xp + 1")
+		if err != nil {
+			log.Println(err.Error())
+		}
+
+		_, err = stmt.Exec(m.Author.ID, 1)
+		if err != nil {
+			log.Println(err.Error())
+		}
 	}
 }
 
@@ -26,6 +36,8 @@ const (
 	server_mute
 	server_unmute
 	move
+	bresil
+	none
 )
 
 func VoiceStateUpdate(client *BotClient) func(s *discordgo.Session, v *discordgo.VoiceStateUpdate) {
@@ -63,7 +75,7 @@ func getStateChangeType(client *BotClient, newState *discordgo.VoiceStateUpdate)
 		return join
 	}
 	if newState.ChannelID == "" && oldState.ChannelID != "" {
-		log.Printf("%v left %v\n", oldState.Member.User.Username, oldChannel.Name)
+		log.Printf("%v left %v\n", newState.Member.User.Username, oldChannel.Name)
 		return leave
 	}
 
@@ -107,12 +119,24 @@ func getStateChangeType(client *BotClient, newState *discordgo.VoiceStateUpdate)
 		return self_mute
 	}
 
+	// --------- Move ---------
 	if oldState.ChannelID != "" && newState.ChannelID != "" && oldState.ChannelID != newState.ChannelID {
+		// if newState.ChannelID == client.Config.BrasilChannelID {
+		// 	// check if user was sent or moved on their own
+		// 	// var test, err = client.Session.GuildAuditLog(client.Config.GuildID, newState.UserID, "", 26, 0)
+		// 	// if err != nil {
+		// 	// 	log.Println(err.Error())
+		// 	// 	return none
+		// 	// }
+
+		// 	return bresil
+		// }
+
 		log.Printf("%v moved from %v to %v", newState.Member.User.Username, oldChannel.Name, newChannel.Name)
 		return move
 	}
 
-	return -1
+	return none
 }
 
 func InteractionCreate(client *BotClient) func(session *discordgo.Session, interaction *discordgo.InteractionCreate) {

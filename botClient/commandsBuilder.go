@@ -2,7 +2,6 @@ package botClient
 
 import (
 	"afho__backend/utils"
-	"afho__backend/utils/commands"
 	"fmt"
 	"log"
 	"time"
@@ -175,14 +174,16 @@ func (builder *CommandsBuilder) Init(client *BotClient) {
 func (builder *CommandsBuilder) initHandlers(client *BotClient) {
 	builder.Handlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"join": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			var returnValue = commands.HandleJoin(s, i.GuildID, i.Member.User.ID)
-
+			var returnValue, error = HandleJoin(s, i.GuildID, i.Member.User.ID)
+			if error != nil {
+				log.Println(error.Error())
+			}
 			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
 				Content: returnValue,
 			})
 		},
 		"leave": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			var returnValue = commands.HandleLeave(s, i.GuildID, i.Member.User.ID)
+			var returnValue = HandleLeave(s, i.GuildID)
 
 			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
 				Content: returnValue,
@@ -204,7 +205,7 @@ func (builder *CommandsBuilder) initHandlers(client *BotClient) {
 				},
 			})
 
-			var returnValue = client.MusicHandler.Add(client, input, i.Member.User.Username, i.Member.User.ID)
+			var returnValue, _ = client.MusicHandler.Add(client, input, i.Member.User.Username, i.Member.User.ID, false)
 			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 				Content: &returnValue,
 			})
@@ -232,7 +233,7 @@ func (builder *CommandsBuilder) initHandlers(client *BotClient) {
 				},
 			})
 
-			var returnValue = client.MusicHandler.AddOnTop(client, input, i.Member.User.Username, i.Member.User.ID)
+			var returnValue, _ = client.MusicHandler.AddOnTop(client, input, i.Member.User.Username, i.Member.User.ID)
 			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 				Content: &returnValue,
 			})
@@ -282,7 +283,7 @@ func (builder *CommandsBuilder) initHandlers(client *BotClient) {
 			}
 			var input = i.ApplicationCommandData().Options[0].UserValue(s)
 
-			var output = client.BrazilUser(i.Member.User, input)
+			var output, _ = client.BrazilUser(i.Member.User, input)
 
 			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
 				Content: output,

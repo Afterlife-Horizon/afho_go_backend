@@ -2,22 +2,91 @@ package api
 
 import (
 	"afho__backend/botClient"
+	"log"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
+	supa "github.com/nedpals/supabase-go"
 )
 
-type ApiHandler struct {
-	discordClient *botClient.BotClient
-	server        *gin.Engine
+type Handler struct {
+	discordClient  *botClient.BotClient
+	router         *gin.Engine
+	supabaseClient *supa.Client
+	Server         *http.Server
 }
 
-func (handler *ApiHandler) InitAPI(discordClient *botClient.BotClient) {
+func (handler *Handler) Init(discordClient *botClient.BotClient) {
 	handler.discordClient = discordClient
-	handler.server = gin.Default()
-	handler.server.GET("/fetch", Fetch(discordClient))
-	handler.server.GET("/connectedMembers", ConnectedMembers(discordClient))
-	handler.server.GET("/brasilBoard", GetBrasilBoard(discordClient))
-	handler.server.GET("/levels", GetLevels(discordClient))
-	handler.server.GET("/times", GetTimes(discordClient))
-	handler.server.Run("localhost:4000")
+	handler.supabaseClient = supa.CreateClient(discordClient.Config.SupaBaseUrl, discordClient.Config.SupaKey)
+
+	handler.setMode()
+
+	<-discordClient.ReadyChannel // Wait for bot to be ready
+
+	handler.initRouter()
+	handler.Server = &http.Server{
+		Addr:    ":4000",
+		Handler: handler.router,
+	}
+
+	handler.run()
+}
+
+func (handler *Handler) initRouter() {
+	handler.router = gin.Default()
+	handler.router.Use(handler.readyMiddleware)
+
+	handler.router.GET("/connectedMembers", handler.connectedMembers)
+	handler.router.GET("/brasilBoard", handler.getBrasilBoard)
+	handler.router.GET("/levels", handler.getLevels)
+	handler.router.GET("/times", handler.getTimes)
+	handler.router.GET("/achievements", handler.getAchievements)
+	handler.router.GET("/getFavs", handler.checkUserMiddleware, handler.getFavs)
+	handler.router.POST("/bresilMember", handler.checkUserMiddleware, handler.postBresil)
+
+	// ------ Music Routes ------
+	musicGroup := handler.router.Group("/music")
+	musicGroup.GET("/fetch", handler.generalFetch)
+
+	// --- USER ---
+	musicGroup.POST("/play", handler.checkUserMiddleware, handler.postPlay)
+	musicGroup.POST("/skip", handler.checkUserMiddleware, handler.postSkip)
+	musicGroup.POST("/pause", handler.checkUserMiddleware, handler.postPause)
+	musicGroup.POST("/unpause", handler.checkUserMiddleware, handler.postUnpause)
+	musicGroup.POST("/playfirst", handler.checkUserMiddleware, handler.postPlayFirst)
+	musicGroup.POST("/shuffle", handler.checkUserMiddleware, handler.postSuffle)
+
+	// --- ADMIN ---
+	musicGroup.POST("/remove", handler.checkUserMiddleware, handler.checkAdminMiddleware, handler.postRemove)
+	musicGroup.POST("/skipto", handler.checkUserMiddleware, handler.checkAdminMiddleware, handler.postSkipTo)
+	musicGroup.POST("/clearqueue", handler.checkUserMiddleware, handler.checkAdminMiddleware, handler.postClearQueue)
+	musicGroup.POST("/stop", handler.checkUserMiddleware, handler.checkAdminMiddleware, handler.postStop)
+	musicGroup.POST("/disconnect", handler.checkUserMiddleware, handler.checkAdminMiddleware, handler.postDisconnect)
+	musicGroup.POST("/filters", handler.checkUserMiddleware, handler.checkAdminMiddleware, handler.postFilters)
+}
+
+func (handler *Handler) setMode() {
+	if gin.Mode() != gin.ReleaseMode && handler.discordClient.Config.IsProduction {
+		gin.SetMode(gin.ReleaseMode)
+		return
+	}
+
+	if gin.Mode() != gin.DebugMode && !handler.discordClient.Config.IsProduction {
+		gin.SetMode(gin.DebugMode)
+	}
+}
+
+func (handler *Handler) run() {
+	if handler.discordClient.Config.CertFile != "" && handler.discordClient.Config.KeyFile != "" {
+		log.Println("Starting HTTPS server")
+		if err := handler.Server.ListenAndServeTLS(handler.discordClient.Config.CertFile, handler.discordClient.Config.KeyFile); err != nil && err != http.ErrServerClosed {
+			log.Fatalln(err.Error())
+		}
+		return
+	}
+
+	if err := handler.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalln(err.Error())
+	}
 }

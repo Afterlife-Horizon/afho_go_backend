@@ -51,6 +51,12 @@ func (collection *Collection[T]) Insert(value ...T) {
 	collection.Unlock()
 }
 
+func (collection *Collection[T]) InsertAt(position int, value ...T) {
+	collection.Lock()
+	collection.Data = append(collection.Data[:position], append(value, collection.Data[position:]...)...)
+	collection.Unlock()
+}
+
 func (collection *Collection[T]) Update(index int, value T) error {
 	var err error
 	if index < 0 || index > len(collection.Data) {

@@ -1,5 +1,10 @@
 package api
 
+import (
+	"fmt"
+	"strconv"
+)
+
 type BrasilBoard struct {
 	User           User `json:"user"`
 	BresilReceived int  `json:"bresil_received"`
@@ -33,6 +38,68 @@ type Effects struct {
 	Treble      bool `json:"treble"`
 }
 
+func (effects *Effects) ToFilters() string {
+	var filters string
+
+	filters += "bass=g=" + strconv.Itoa(effects.Bassboost)
+	if effects.Speed <= 0 {
+		effects.Speed = 1
+	}
+	filters += ",atempo=" + strconv.Itoa(effects.Speed)
+
+	if effects.Normalizer {
+		filters += ",dynaudnorm=f=200"
+	}
+	if effects.Subboost {
+		filters += ",asubboost"
+	}
+	if effects.Nightcore {
+		filters += ",asetrate=48000*1.25"
+	}
+	if effects.Phaser {
+		filters += ",aphaser"
+	}
+	if effects.Reverse {
+		filters += ",areverse"
+	}
+	if effects.Surrounding {
+		filters += ",surround"
+	}
+	if effects.ThreeD {
+		filters += ",apulsator=hz=0.125"
+	}
+	if effects.Tremolo {
+		filters += ",tremolo"
+	}
+	if effects.Vibrato {
+		filters += ",vibrato=f=6.5"
+	}
+	if effects.Gate {
+		filters += ",agate"
+	}
+	if effects.Karaoke {
+		filters += ",stereotools=mlev=0.03"
+	}
+	if effects.Vaporwave {
+		filters += ",aresample=48000,asetrate=48000*0.8"
+	}
+	if effects.Flanger {
+		filters += ",flanger"
+	}
+	if effects.Treble {
+		filters += ",treble=g=5"
+	}
+	if effects.Haas {
+		filters += ",haas"
+	}
+	if effects.Mcompand {
+		filters += ",mcompand"
+	}
+
+	fmt.Println(filters)
+	return filters
+}
+
 type Track struct {
 	Id                string `json:"id"`
 	Title             string `json:"title"`
@@ -58,12 +125,13 @@ type Level struct {
 type FetchResults struct {
 	Admins       []string `json:"admins"`
 	Formatedprog string   `json:"formatedprog"`
-	Prog         float64  `json:"prog"`
+	Prog         int      `json:"prog"`
 	Queue        []Queue  `json:"queue"`
 }
 
 type connectedMembers struct {
 	Username string `json:"username"`
+	ID       string `json:"id"`
 }
 
 type ConnectedMembersResponse struct {
@@ -73,4 +141,26 @@ type ConnectedMembersResponse struct {
 type Time struct {
 	User      User `json:"user"`
 	TimeSpent int  `json:"time_spent"`
+}
+
+type APIAchievement struct {
+	Id           string        `json:"id"`
+	Username     string        `json:"username"`
+	Achievements []Achievement `json:"achievements"`
+}
+
+type Achievement struct {
+	Name         string `json:"name"`
+	Requirements string `json:"requirements"`
+	Type         string `json:"type"`
+}
+
+type Fav struct {
+	Id        string `json:"id"`
+	User_id   string `json:"user_id"`
+	Name      string `json:"name"`
+	Url       string `json:"url"`
+	Thumbnail string `json:"thumbnail"`
+	Type      string `json:"type"`
+	DateAdded string `json:"date_added"`
 }
