@@ -29,7 +29,7 @@ func GetUserAvatar(discordClient *botClient.BotClient, userID string) string {
 	return avatarURL
 }
 
-func xptoLvl(xp int) float64 {
+func XptoLvl(xp int) float64 {
 	var exp float64 = 2
 	return math.Floor(math.Pow(float64(xp)/exp, 1/exp)) + 1
 }
@@ -68,7 +68,7 @@ func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
 			panic(err3.Error())
 		}
 
-		tmp.Lvl = int(xptoLvl(tmp.Xp))
+		tmp.Lvl = int(XptoLvl(tmp.Xp))
 
 		member, err4 := discordClient.CacheHandler.Members.Get(func(t *discordgo.Member) bool {
 			return t.User.ID == tmp.User.User_id

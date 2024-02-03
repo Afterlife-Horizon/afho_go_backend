@@ -33,9 +33,9 @@ func main() {
 
 	initDBConnection()
 	initDiscordClient()
-	go initAPI()
 
 	go everyMinuteLoop()
+	go initAPI()
 
 	gracefulShutdown()
 }
