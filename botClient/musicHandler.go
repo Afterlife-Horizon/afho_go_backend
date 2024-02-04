@@ -410,7 +410,6 @@ func (handler *MusicHandler) DCA(client *BotClient, url string, voiceConnection 
 			err := <-done
 			if err != nil && err != io.EOF {
 				utils.Logger.Error(err)
-				encodeSession.Cleanup()
 			}
 		}
 	}()
