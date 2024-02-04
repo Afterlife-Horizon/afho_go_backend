@@ -1,9 +1,9 @@
 package main
 
 import (
-	"afho__backend/api"
-	"afho__backend/botClient"
-	"afho__backend/utils"
+	"afho_backend/api"
+	"afho_backend/botClient"
+	"afho_backend/utils"
 	"context"
 	"database/sql"
 	"flag"

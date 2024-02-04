@@ -1,11 +1,10 @@
 package api
 
 import (
-	"afho__backend/botClient"
-	"afho__backend/utils"
+	"afho_backend/botClient"
+	"afho_backend/utils"
 	"database/sql"
 	"errors"
-	"fmt"
 	"math"
 	"regexp"
 	"sort"
@@ -82,7 +81,7 @@ func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
 			return t.User.ID == tmp.User.User_id
 		})
 		if err4 != nil {
-			utils.Logger.Error(err4.Error())
+			utils.Logger.Warn(err4.Error())
 			continue
 		}
 
@@ -122,7 +121,8 @@ func getBrasilBoardDB(db *sql.DB, discordClient *botClient.BotClient) []BrasilBo
 			return t.User.ID == tmp.User.User_id
 		})
 		if err4 != nil {
-			utils.Logger.Error(err4.Error())
+			// utils.Logger.Warn(err4.Error())
+			continue
 		}
 
 		tmp.User.Username = member.User.Username
@@ -161,7 +161,7 @@ func GetTimesDB(discordClient *botClient.BotClient, db *sql.DB) []Time {
 			return t.User.ID == tmp.User.User_id
 		})
 		if err4 != nil {
-			utils.Logger.Error(err4.Error())
+			// utils.Logger.Warn(err4.Error())
 			continue
 		}
 
@@ -203,7 +203,7 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 			return t.User.ID == userId
 		})
 		if err4 != nil {
-			utils.Logger.Error(err4.Error())
+			// utils.Logger.Warn(err4.Error())
 			continue
 		}
 
@@ -295,7 +295,7 @@ func AddFavDB(discordClient *botClient.BotClient, db *sql.DB, userId string, url
 		}
 		var videoURL = "https://www.youtube.com/watch?v=" + videoId
 
-		fmt.Println(videoURL)
+		utils.Logger.Debug(videoURL)
 
 		video, err2 = addFavoriteDB(discordClient, db, videoURL)
 	} else {

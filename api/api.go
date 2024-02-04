@@ -1,8 +1,8 @@
 package api
 
 import (
-	"afho__backend/botClient"
-	"afho__backend/utils"
+	"afho_backend/botClient"
+	"afho_backend/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

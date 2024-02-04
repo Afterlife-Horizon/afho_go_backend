@@ -1,7 +1,7 @@
 package botClient
 
 import (
-	"afho__backend/utils"
+	"afho_backend/utils"
 	"context"
 	"errors"
 	"fmt"
@@ -302,7 +302,7 @@ func (handler *MusicHandler) AddPlayList(input string, requester string, request
 
 	if handler.Queue == nil {
 		handler.Queue = NewQueue()
-		fmt.Println("Queue: ", handler.Queue)
+		// utils.Logger.Debug("Queue: ", handler.Queue)
 	}
 
 	var wg = sync.WaitGroup{}
@@ -388,13 +388,11 @@ func (handler *MusicHandler) DCA(client *BotClient, url string, voiceConnection 
 	}
 
 	formats := handler.Queue.Tracks.Data[0].Video.Formats.WithAudioChannels()
-	stream, size, err := handler.YoutubeClient.GetStream(handler.Queue.Tracks.Data[0].Video, &formats[0])
+	stream, _, err := handler.YoutubeClient.GetStream(handler.Queue.Tracks.Data[0].Video, &formats[0])
 	if err != nil {
 		utils.Logger.Error(err)
 		return
 	}
-
-	utils.Logger.Debug("Stream", stream, size)
 
 	voiceConnection.Speaking(true)
 	handler.Queue.Playing = true
@@ -404,8 +402,6 @@ func (handler *MusicHandler) DCA(client *BotClient, url string, voiceConnection 
 		utils.Logger.Error(err)
 		return
 	}
-
-	utils.Logger.Debug("Encoding session created", encodeSession)
 
 	done := make(chan error)
 	handler.Stream = dca.NewStream(encodeSession, voiceConnection, done)
@@ -427,8 +423,6 @@ func (handler *MusicHandler) DCA(client *BotClient, url string, voiceConnection 
 	handler.stop = stop
 	var forceStopLoop = false
 	handler.EncodeSession = encodeSession
-
-	utils.Logger.Debug("encodeSession", encodeSession.Stats())
 
 	go func() {
 		for range stop {

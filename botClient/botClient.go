@@ -1,7 +1,7 @@
 package botClient
 
 import (
-	"afho__backend/utils"
+	"afho_backend/utils"
 	"database/sql"
 	"errors"
 	"fmt"

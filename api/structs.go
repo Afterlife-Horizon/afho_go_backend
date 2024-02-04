@@ -1,7 +1,7 @@
 package api
 
 import (
-	"fmt"
+	"afho_backend/utils"
 	"strconv"
 )
 
@@ -97,7 +97,7 @@ func (effects *Effects) ToFilters() string {
 		filters += ",mcompand"
 	}
 
-	fmt.Println(filters)
+	utils.Logger.Debug("Filters:", filters)
 	return filters
 }
 
