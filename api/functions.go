@@ -194,8 +194,6 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 			continue
 		}
 
-		fmt.Println(tmpAchievement)
-
 		member, err4 := discordClient.CacheHandler.Members.Get(func(t *discordgo.Member) bool {
 			return t.User.ID == userId
 		})
@@ -209,15 +207,13 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 			old_achievements = append(old_achievements, tmpAchievement)
 			val.Achievements = old_achievements
 			tmpAll[userId] = val
-			// fmt.Println(val, tmpAll[userId])
 		} else {
 			var tmp = APIAchievement{
 				Id:       member.User.ID,
 				Username: member.User.Username,
 			}
 			tmp.Achievements = append(tmp.Achievements, tmpAchievement)
-			tmpAll[tmp.Username] = tmp
-			// fmt.Println(val, tmpAll[userId])
+			tmpAll[userId] = tmp
 		}
 	}
 
