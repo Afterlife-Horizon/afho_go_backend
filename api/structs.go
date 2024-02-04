@@ -144,6 +144,7 @@ type Time struct {
 }
 
 type APIAchievement struct {
+	Counter      int8
 	Id           string        `json:"id"`
 	Username     string        `json:"username"`
 	Achievements []Achievement `json:"achievements"`

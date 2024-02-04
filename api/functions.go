@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -185,6 +186,7 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 	var tmpAll = make(map[string]APIAchievement, len(discordClient.CacheHandler.Members.Data))
 
 	var result []APIAchievement = make([]APIAchievement, 0, 100)
+	var counter int8 = 0
 	for rows.Next() {
 		var userId string
 		var tmpAchievement = Achievement{}
@@ -209,11 +211,13 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 			tmpAll[userId] = val
 		} else {
 			var tmp = APIAchievement{
+				Counter:  counter,
 				Id:       member.User.ID,
 				Username: member.User.Username,
 			}
 			tmp.Achievements = append(tmp.Achievements, tmpAchievement)
 			tmpAll[userId] = tmp
+			counter++
 		}
 	}
 
@@ -224,6 +228,10 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 			delete(tmpAll, key)
 		}
 	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Counter < result[j].Counter
+	})
 
 	return result
 }
