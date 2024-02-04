@@ -203,7 +203,9 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 		}
 
 		if val, ok := tmpAll[userId]; ok {
-			val.Achievements = append(val.Achievements, tmpAchievement)
+			var old_achievements = val.Achievements
+			old_achievements = append(old_achievements, tmpAchievement)
+			val.Achievements = old_achievements
 			tmpAll[userId] = val
 			fmt.Println(val, tmpAll[userId])
 		} else {
@@ -213,6 +215,7 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 			}
 			tmp.Achievements = append(tmp.Achievements, tmpAchievement)
 			tmpAll[tmp.Username] = tmp
+			fmt.Println(val, tmpAll[userId])
 		}
 	}
 
