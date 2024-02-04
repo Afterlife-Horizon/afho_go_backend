@@ -19,10 +19,7 @@ var apiHandler *api.Handler = &api.Handler{}
 var discordClient *botClient.BotClient = &botClient.BotClient{}
 
 var tickerMinute *time.Ticker = time.NewTicker(time.Minute)
-var env = utils.LoadEnv(utils.Flags{
-	AddCommands: addCommandsFlag,
-	DelCommands: delCommandsFlag,
-})
+var env utils.Env
 
 var addCommandsFlag = flag.Bool("add-commands", false, "Add new commands to discord servers")
 var delCommandsFlag = flag.Bool("del-commands", false, "Delete commands from discord servers")
@@ -30,6 +27,10 @@ var delCommandsFlag = flag.Bool("del-commands", false, "Delete commands from dis
 func main() {
 	flag.Parse()
 	utils.InitLogger()
+	env = utils.LoadEnv(utils.Flags{
+		AddCommands: addCommandsFlag,
+		DelCommands: delCommandsFlag,
+	})
 
 	initDBConnection()
 	initDiscordClient()
