@@ -3,7 +3,6 @@ package api
 import (
 	"afho_backend/botClient"
 	"afho_backend/utils"
-	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -62,7 +61,7 @@ func (handler *Handler) generalFetch(c *gin.Context) {
 }
 
 func (handler *Handler) connectedMembers(c *gin.Context) {
-	fmt.Println("Recieved request for connected members")
+	utils.Logger.Debug("Recieved request for connected members")
 	handler.discordClient.CacheHandler.VoiceConnectedMembers.RLock()
 	var connectedMembers []connectedMembers = utils.Map[*discordgo.Member](handler.discordClient.CacheHandler.VoiceConnectedMembers, func(member *discordgo.Member) connectedMembers {
 		return connectedMembers{
@@ -72,7 +71,7 @@ func (handler *Handler) connectedMembers(c *gin.Context) {
 	}).Data
 	handler.discordClient.CacheHandler.VoiceConnectedMembers.RUnlock()
 
-	fmt.Println("Sending connected members", connectedMembers)
+	utils.Logger.Debug("Sending connected members", connectedMembers)
 	c.JSON(200, ConnectedMembersResponse{
 		Data: connectedMembers,
 	})
