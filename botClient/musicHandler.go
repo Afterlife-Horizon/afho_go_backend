@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"regexp"
 	"sync"
 	"time"
@@ -28,7 +27,7 @@ var baseOpts = dca.EncodeOptions{
 	CompressionLevel: 10,
 	PacketLoss:       1,
 	RawOutput:        true,
-	VBR:              true,
+	VBR:              false,
 	BufferedFrames:   100,
 	Threads:          1,
 	StartTime:        0,
@@ -56,6 +55,7 @@ type Queue struct {
 }
 
 func NewQueue() *Queue {
+	utils.Logger.Debug("Creating new Queue")
 	return &Queue{
 		Playing: false,
 		Tracks:  utils.NewCollection[Track]([]Track{}),
@@ -74,11 +74,13 @@ type MusicHandler struct {
 }
 
 func (handler *MusicHandler) Init(client *BotClient) {
+	utils.Logger.Debug("Initialising Music Handler")
 	youtubeClient := youtube.Client{}
+	utils.Logger.Debug("Creating Youtube Service")
 	service, err := youtubeApi.NewService(context.Background(), option.WithAPIKey(client.Config.YTApiKey))
 	if err != nil {
-		log.Println("Could not launch youtube service!")
-		log.Println(err.Error())
+		utils.Logger.Error("Could not launch youtube service!")
+		utils.Logger.Error(err.Error())
 	}
 
 	handler.Queue = NewQueue()
@@ -87,7 +89,7 @@ func (handler *MusicHandler) Init(client *BotClient) {
 }
 
 func checkForChannel(discordClient *BotClient, requesterId string) error {
-
+	utils.Logger.Debug("Checking if user is in a voice channel")
 	var _, err = discordClient.CacheHandler.VoiceConnectedMembers.Get(func(t *discordgo.Member) bool {
 		return t.User.ID == requesterId
 	})
@@ -113,6 +115,8 @@ func (handler *MusicHandler) Add(client *BotClient, input string, requester stri
 	var isYoutubeSong = songRegex.MatchString(input)
 	var isYoutubePlaylist = playlistRegex.MatchString(input)
 
+	utils.Logger.Debug("Checking input type", "isYoutubeSong", isYoutubeSong, "isYoutubePlaylist", isYoutubePlaylist)
+
 	var returnValue string
 
 	// extract playlist id from url
@@ -129,7 +133,10 @@ func (handler *MusicHandler) Add(client *BotClient, input string, requester stri
 		}
 	}
 
+	utils.Logger.Debug("Playlist ID", playlistID)
+
 	if onTop && isYoutubePlaylist {
+		utils.Logger.Debug("On top and is playlist!")
 		return "Cannot add playlist on top of queue!", errors.New("cannot add playlist on top of queue")
 	}
 
@@ -179,8 +186,8 @@ func (handler *MusicHandler) AddOnTop(client *BotClient, input string, requester
 func (handler *MusicHandler) AddSongSearch(input string, requester string, requesterId string, onTop bool) (Track, error) {
 	response, err := handler.YoutubeService.Search.List([]string{"id", "snippet"}).Q(input).MaxResults(1).Do()
 	if err != nil {
-		log.Println("Could not search for video!")
-		log.Println(err.Error())
+		utils.Logger.Warn("Could not search for video!")
+		utils.Logger.Warn(err.Error())
 		return Track{}, errors.New("could not search for video")
 	}
 
@@ -190,20 +197,19 @@ func (handler *MusicHandler) AddSongSearch(input string, requester string, reque
 	}
 
 	if id == "" {
-		log.Println("Video not found")
+		utils.Logger.Info("Video not found")
 		return Track{}, errors.New("video not found")
 	}
 
 	vid, err := handler.YoutubeClient.GetVideo(id)
 	if err != nil {
-		log.Println(err.Error())
-		log.Println("Could not get video info!")
+		utils.Logger.Warn(err.Error())
+		utils.Logger.Warn("Could not get video info!")
 		return Track{}, errors.New("could not get video info")
 	}
 
 	if handler.Queue == nil {
 		handler.Queue = NewQueue()
-		fmt.Println("Queue: ", handler.Queue)
 	}
 
 	var track = Track{
@@ -230,21 +236,20 @@ func (handler *MusicHandler) AddSongSearch(input string, requester string, reque
 func (handler *MusicHandler) AddSong(input string, requester string, requesterId string, onTop bool) (Track, error) {
 	var id, err = youtube.ExtractVideoID(input)
 	if err != nil {
-		log.Println(err.Error())
-		log.Println("Could not extract ID from input!")
+		utils.Logger.Warn(err.Error())
+		utils.Logger.Warn("Could not extract ID from input!")
 		return Track{}, errors.New("could not extract ID from input")
 	}
 
 	vid, err := handler.YoutubeClient.GetVideo(id)
 	if err != nil {
-		log.Println(err.Error())
-		log.Println("Could not get video info!")
+		utils.Logger.Warn(err.Error())
+		utils.Logger.Warn("Could not get video info!")
 		return Track{}, errors.New("could not get video info")
 	}
 
 	if handler.Queue == nil {
 		handler.Queue = NewQueue()
-		fmt.Println("Queue: ", handler.Queue)
 	}
 
 	var track = Track{
@@ -269,27 +274,29 @@ func (handler *MusicHandler) AddSong(input string, requester string, requesterId
 	return track, nil
 }
 func (handler *MusicHandler) AddPlayList(input string, requester string, requesterId string, playlistID string) error {
+	utils.Logger.Debug("Adding playlist")
 	response, err := handler.YoutubeService.Playlists.List([]string{"id", "snippet"}).Id(playlistID).Do()
 	if err != nil {
-		log.Println("Could not search for playlist!")
-		log.Println(err.Error())
+		utils.Logger.Warn("Could not search for playlist!")
+		utils.Logger.Warn(err.Error())
 		return errors.New("could not search for playlist")
 	}
 
+	utils.Logger.Debug("Playlist response", response)
 	var id string
 	for _, item := range response.Items {
 		id = item.Id
 	}
 
 	if id == "" {
-		log.Println("Playlist not found")
+		utils.Logger.Warn("Playlist not found")
 		return errors.New("playlist not found")
 	}
 
 	playlist, err := handler.YoutubeClient.GetPlaylist(id)
 	if err != nil {
-		log.Println(err.Error())
-		log.Println("Could not get playlist info!")
+		utils.Logger.Error(err.Error())
+		utils.Logger.Warn("Could not get playlist info!")
 		return errors.New("could not get playlist info")
 	}
 
@@ -303,12 +310,13 @@ func (handler *MusicHandler) AddPlayList(input string, requester string, request
 	length := len(playlist.Videos)
 	var tracks = make([]Track, length)
 	for i, vid := range playlist.Videos {
+		utils.Logger.Debug("Getting video info", vid.ID)
 		wg.Add(1)
 		go func(index int, vidID string) {
 			video, err := handler.YoutubeClient.GetVideo(vidID)
 			if err != nil {
-				log.Println(err.Error())
-				log.Println("Could not get video info!")
+				utils.Logger.Error(err.Error())
+				utils.Logger.Warn("Could not get video info!")
 				wg.Done()
 				return
 			}
@@ -333,6 +341,7 @@ func (handler *MusicHandler) AddPlayList(input string, requester string, request
 	}
 	wg.Wait()
 
+	utils.Logger.Debug("Added Tracks", tracks)
 	handler.Queue.Tracks.Insert(tracks...)
 	return nil
 }
@@ -342,11 +351,12 @@ func (handler *MusicHandler) AddSongAndPlayList(input string, requester string, 
 
 // ---------------------------- Queue Helpers ----------------------------
 func (handler *MusicHandler) Shuffle(client *BotClient) {
+	utils.Logger.Debug("Shuffling queue")
 	handler.Queue.Tracks.Shuffle(1, len(handler.Queue.Tracks.Data), 3)
-	fmt.Println(handler.Queue.Tracks.ToString())
 }
 
 func (handler *MusicHandler) ClearQueue(client *BotClient) {
+	utils.Logger.Debug("Clearing queue")
 	if len(handler.Queue.Tracks.Data) <= 0 {
 		return
 	}
@@ -354,10 +364,12 @@ func (handler *MusicHandler) ClearQueue(client *BotClient) {
 }
 
 func (handler *MusicHandler) Remove(client *BotClient, index int) {
+	utils.Logger.Debug("Removing track", index)
 	handler.Queue.Tracks.RemoveItemAtIndex(index)
 }
 
 func (handler *MusicHandler) Move(client *BotClient, from int, to int) {
+	utils.Logger.Debug("Moving track", from, to)
 	if from < 1 || from > len(handler.Queue.Tracks.Data) || to < 1 || to > len(handler.Queue.Tracks.Data) {
 		return
 	}
@@ -366,26 +378,34 @@ func (handler *MusicHandler) Move(client *BotClient, from int, to int) {
 
 // ---------------------------- Queue Handlers ----------------------------
 func (handler *MusicHandler) DCA(client *BotClient, url string, voiceConnection *discordgo.VoiceConnection) {
+	utils.Logger.Debug("DCA")
 	opts := &baseOpts
 	opts.StartTime = int(handler.Queue.SeekPosition.Abs().Seconds())
 	err := opts.Validate()
 	if err != nil {
-		panic(err)
+		utils.Logger.Error(err)
+		return
 	}
 
 	formats := handler.Queue.Tracks.Data[0].Video.Formats.WithAudioChannels()
-	stream, _, err := handler.YoutubeClient.GetStream(handler.Queue.Tracks.Data[0].Video, &formats[0])
+	stream, size, err := handler.YoutubeClient.GetStream(handler.Queue.Tracks.Data[0].Video, &formats[0])
 	if err != nil {
-		panic(err)
+		utils.Logger.Error(err)
+		return
 	}
+
+	utils.Logger.Debug("Stream", stream, size)
 
 	voiceConnection.Speaking(true)
 	handler.Queue.Playing = true
 
 	encodeSession, err := dca.EncodeMem(stream, opts)
 	if err != nil {
-		panic(err)
+		utils.Logger.Error(err)
+		return
 	}
+
+	utils.Logger.Debug("Encoding session created", encodeSession)
 
 	done := make(chan error)
 	handler.Stream = dca.NewStream(encodeSession, voiceConnection, done)
@@ -393,10 +413,13 @@ func (handler *MusicHandler) DCA(client *BotClient, url string, voiceConnection 
 		for range done {
 			err := <-done
 			if err != nil && err != io.EOF {
-				log.Println("An error occured", err)
+				utils.Logger.Error(err)
+				encodeSession.Cleanup()
 			}
 		}
 	}()
+
+	utils.Logger.Debug("Playing")
 
 	var stop = make(chan bool)
 
@@ -404,6 +427,8 @@ func (handler *MusicHandler) DCA(client *BotClient, url string, voiceConnection 
 	handler.stop = stop
 	var forceStopLoop = false
 	handler.EncodeSession = encodeSession
+
+	utils.Logger.Debug("encodeSession", encodeSession.Stats())
 
 	go func() {
 		for range stop {
@@ -418,15 +443,16 @@ func (handler *MusicHandler) DCA(client *BotClient, url string, voiceConnection 
 	go func() {
 		for {
 			var timeLeft = handler.Queue.Tracks.Data[0].Duration - (handler.Stream.PlaybackPosition() + handler.Queue.SeekPosition)
-			// fmt.Println(timeLeft)
 			if timeLeft.Milliseconds() < 1*time.Second.Milliseconds() {
 				break
 			}
 			if forceStopLoop {
+				utils.Logger.Debug("Force stopping")
 				return
 			}
 			time.Sleep(1 * time.Second)
 		}
+		utils.Logger.Debug("Track finished/Stopped")
 		encodeSession.Cleanup()
 		voiceConnection.Speaking(false)
 		handler.Queue.Playing = false
@@ -437,7 +463,8 @@ func (handler *MusicHandler) DCA(client *BotClient, url string, voiceConnection 
 }
 
 func (handler *MusicHandler) handleQueue(client *BotClient, voiceConnection *discordgo.VoiceConnection) {
-	fmt.Println("handling queue: ", utils.Map[Track, string](&handler.Queue.Tracks, func(t Track) string {
+
+	utils.Logger.Debug("handling queue: ", utils.Map[Track, string](&handler.Queue.Tracks, func(t Track) string {
 		return fmt.Sprintf("%v - %v", t.Title, t.Author)
 	}).ToString())
 
@@ -451,17 +478,20 @@ func (handler *MusicHandler) handleQueue(client *BotClient, voiceConnection *dis
 
 // ---------------------------- Player Handlers ----------------------------
 func (handler *MusicHandler) Stop(client *BotClient) {
+	utils.Logger.Debug("Stopping")
 	handler.channel <- nil
 	handler.Queue.Tracks.Data[0].Duration = 0
 	handler.ClearQueue(client)
 }
 func (handler *MusicHandler) SetPause(pause bool) {
+	utils.Logger.Debug("Setting pause", pause)
 	handler.Stream.SetPaused(pause)
 	handler.Paused = pause
 	// handler.Queue.Playing = !pause
 }
 
 func (handler *MusicHandler) Seek(client *BotClient, position time.Duration) {
+	utils.Logger.Debug("Seeking", position)
 	if (handler.Queue.Tracks.Data[0].Duration - position).Milliseconds() < 1*time.Second.Milliseconds() {
 		return
 	}
@@ -479,17 +509,20 @@ func (handler *MusicHandler) Seek(client *BotClient, position time.Duration) {
 }
 
 func (handler *MusicHandler) Skip(client *BotClient) {
+	utils.Logger.Debug("Skipping")
 	handler.channel <- nil
 	handler.Queue.Tracks.Data[0].Duration = 0
 }
 
 func (handler *MusicHandler) SkipTo(client *BotClient, index int) {
+	utils.Logger.Debug("Skipping to", index)
 	handler.Queue.Tracks.Shift(index - 1)
 	handler.channel <- nil
 	handler.Queue.Tracks.Data[0].Duration = 0
 }
 
 func (handler *MusicHandler) SetFilters(client *BotClient, filters string) {
+	utils.Logger.Debug("Setting filters", filters)
 	baseOpts.AudioFilter = filters
 
 	handler.stop <- true

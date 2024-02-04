@@ -305,3 +305,51 @@ func (handler *Handler) postBresil(c *gin.Context) {
 
 	c.JSON(200, gin.H{})
 }
+
+func (handler *Handler) postAddFav(c *gin.Context) {
+	var user = c.MustGet("user").(*supa.User)
+	var body = struct {
+		Url string `json:"url"`
+	}{}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.AbortWithStatusJSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	var _, err = AddFavDB(handler.discordClient, handler.discordClient.DB, user.UserMetadata["provider_id"].(string), body.Url)
+	if err != nil {
+		c.AbortWithStatusJSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{})
+}
+
+func (handler *Handler) postRemoveFav(c *gin.Context) {
+	var user = c.MustGet("user").(*supa.User)
+	var body = struct {
+		Id string `json:"id"`
+	}{}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.AbortWithStatusJSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	var err = RemoveFavoriteDB(handler.discordClient, handler.discordClient.DB, user.UserMetadata["provider_id"].(string), body.Id)
+	if err != nil {
+		c.AbortWithStatusJSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{})
+}

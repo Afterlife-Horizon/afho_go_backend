@@ -2,11 +2,14 @@ package api
 
 import (
 	"afho__backend/botClient"
+	"afho__backend/utils"
 	"database/sql"
 	"errors"
-	"log"
+	"fmt"
 	"math"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -16,7 +19,7 @@ func GetUserAvatar(discordClient *botClient.BotClient, userID string) string {
 		return t.User.ID == userID
 	})
 	if err4 != nil {
-		log.Printf(err4.Error())
+		utils.Logger.Error(err4.Error())
 	}
 
 	var avatarURL = member.User.Avatar
@@ -50,10 +53,10 @@ func GetAdmins(discordClient *botClient.BotClient) []string {
 
 func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
 	var statement, err = db.Prepare("SELECT * FROM Levels")
+	defer statement.Close()
 	if err != nil {
 		panic(err.Error())
 	}
-	defer statement.Close()
 
 	var rows, err2 = statement.Query()
 	if err2 != nil {
@@ -87,10 +90,10 @@ func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
 
 func getBrasilBoardDB(db *sql.DB, discordClient *botClient.BotClient) []BrasilBoard {
 	var statement, err = db.Prepare("SELECT * FROM Bresil_count")
+	defer statement.Close()
 	if err != nil {
 		panic(err.Error())
 	}
-	defer statement.Close()
 
 	var rows, err2 = statement.Query()
 	if err2 != nil {
@@ -122,10 +125,10 @@ func getBrasilBoardDB(db *sql.DB, discordClient *botClient.BotClient) []BrasilBo
 
 func GetTimesDB(discordClient *botClient.BotClient, db *sql.DB) []Time {
 	var statement, err = db.Prepare("SELECT * FROM Time_connected")
+	defer statement.Close()
 	if err != nil {
 		panic(err.Error())
 	}
-	defer statement.Close()
 
 	var rows, err2 = statement.Query()
 	if err2 != nil {
@@ -157,10 +160,10 @@ func GetTimesDB(discordClient *botClient.BotClient, db *sql.DB) []Time {
 
 func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchievement {
 	var statement, err = db.Prepare("SELECT user_id, achievement_name, Achievement_get.type, requirements FROM Achievement_get, Achievements WHERE Achievement_get.achievement_name = Achievements.name")
+	defer statement.Close()
 	if err != nil {
 		panic(err.Error())
 	}
-	defer statement.Close()
 
 	var rows, err2 = statement.Query()
 	if err2 != nil {
@@ -210,12 +213,12 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 }
 
 func GetFavsDB(discordClient *botClient.BotClient, db *sql.DB, userId string) ([]Fav, error) {
-	var statement, err = db.Prepare("SELECT user_id, video_id, url, name, thumbnail, type, date_added FROM Favorites, Videos WHERE user_id = ?")
+	var statement, err = db.Prepare("SELECT user_id, video_id, url, name, thumbnail, type, date_added FROM Favorites, Videos WHERE user_id = ? AND video_id = id")
+	defer statement.Close()
 	if err != nil {
-		log.Println(err.Error())
+		utils.Logger.Error(err.Error())
 		return nil, errors.New("internal error")
 	}
-	defer statement.Close()
 
 	var rows, err2 = statement.Query(userId)
 	if err2 != nil {
@@ -227,7 +230,7 @@ func GetFavsDB(discordClient *botClient.BotClient, db *sql.DB, userId string) ([
 		var tmp = Fav{}
 		err3 := rows.Scan(&tmp.User_id, &tmp.Id, &tmp.Url, &tmp.Name, &tmp.Thumbnail, &tmp.Type, &tmp.DateAdded)
 		if err3 != nil {
-			log.Println(err3.Error())
+			utils.Logger.Error(err3.Error())
 			return nil, errors.New("internal error")
 		}
 
@@ -235,4 +238,140 @@ func GetFavsDB(discordClient *botClient.BotClient, db *sql.DB, userId string) ([
 	}
 
 	return result, nil
+}
+
+func AddFavDB(discordClient *botClient.BotClient, db *sql.DB, userId string, url string) (Fav, error) {
+	var songRegex, _ = regexp.Compile(`https?:\/\/(www.youtube.com|youtube.com)\/watch\?v=(?P<videoID>[^#\&\?]*)(&list=(?:[^#\&\?]*))?`)
+	var playlistRegex, _ = regexp.Compile(`https?:\/\/(?:www.youtube.com|youtube.com)\/(?:playlist\?list=(?P<listID>[^#\&\?]*)|watch\?v=(?:[^#\&\?]*)&list=(?P<listID2>[^#\&\?]*))`)
+
+	var isYoutubeSong = songRegex.MatchString(url)
+	var isYoutubePlaylist = playlistRegex.MatchString(url)
+
+	if !isYoutubeSong && !isYoutubePlaylist {
+		return Fav{}, errors.New("invalid url")
+	}
+
+	var video Fav
+	var err2 error
+	if isYoutubeSong {
+		var videoId string
+		if isYoutubePlaylist {
+			var tmp = songRegex.FindStringSubmatch(url)
+			for i, name := range songRegex.SubexpNames() {
+				if i != 0 && name != "" {
+					if tmp[i] == "" {
+						continue
+					}
+					videoId = tmp[i]
+				}
+			}
+		}
+		var videoURL = "https://www.youtube.com/watch?v=" + videoId
+
+		fmt.Println(videoURL)
+
+		video, err2 = addFavoriteDB(discordClient, db, videoURL)
+	} else {
+		video, err2 = addFavoritePlaylistDB(discordClient, db, url)
+	}
+	if err2 != nil {
+		return Fav{}, err2
+	}
+
+	var statement, err = db.Prepare("INSERT INTO Favorites (user_id, video_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE user_id = user_id")
+	defer statement.Close()
+	if err != nil {
+		utils.Logger.Error(err.Error())
+		return Fav{}, errors.New("internal error")
+	}
+
+	_, err3 := statement.Exec(userId, video.Id)
+	if err3 != nil {
+		utils.Logger.Error(err3.Error())
+		return Fav{}, errors.New("internal error")
+	}
+
+	return Fav{
+		User_id:   userId,
+		Id:        video.Id,
+		Url:       url,
+		Name:      video.Name,
+		Thumbnail: video.Thumbnail,
+		Type:      video.Type,
+	}, nil
+}
+
+func addFavoritePlaylistDB(discordClient *botClient.BotClient, db *sql.DB, url string) (Fav, error) {
+	var statement2, err = db.Prepare("INSERT INTO Videos (id, url, name, thumbnail, type) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE id = id")
+	defer statement2.Close()
+	if err != nil {
+		utils.Logger.Error(err.Error())
+		return Fav{}, errors.New("internal error")
+	}
+
+	var playlist, err2 = discordClient.MusicHandler.YoutubeClient.GetPlaylist(url)
+	if err2 != nil {
+		utils.Logger.Error(err2.Error())
+		return Fav{}, errors.New("internal error")
+	}
+
+	var _, err3 = statement2.Exec(playlist.ID, url, playlist.Title, utils.GetMaxResThumbnail(playlist.Videos[0].Thumbnails).URL, "playlist")
+	if err3 != nil {
+		utils.Logger.Error(err3.Error())
+		return Fav{}, errors.New("internal error")
+	}
+	return Fav{
+		Id:        playlist.ID,
+		Url:       url,
+		Name:      playlist.Title,
+		Thumbnail: utils.GetMaxResThumbnail(playlist.Videos[0].Thumbnails).URL,
+		Type:      "playlist",
+		DateAdded: time.Now().Local().String(),
+	}, nil
+}
+
+func addFavoriteDB(discordClient *botClient.BotClient, db *sql.DB, url string) (Fav, error) {
+	var statement2, err = db.Prepare("INSERT INTO Videos (id, url, name, thumbnail, type) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE id = id")
+	defer statement2.Close()
+	if err != nil {
+		utils.Logger.Error(err.Error())
+		return Fav{}, errors.New("internal error")
+	}
+
+	var video, err2 = discordClient.MusicHandler.YoutubeClient.GetVideo(url)
+	if err2 != nil {
+		utils.Logger.Error(err2.Error())
+		return Fav{}, errors.New("internal error")
+	}
+
+	var _, err3 = statement2.Exec(video.ID, url, video.Title, utils.GetMaxResThumbnail(video.Thumbnails).URL, "video")
+	if err3 != nil {
+		utils.Logger.Error(err3.Error())
+		return Fav{}, errors.New("internal error")
+	}
+	return Fav{
+		Id:        video.ID,
+		Url:       url,
+		Name:      video.Title,
+		Thumbnail: utils.GetMaxResThumbnail(video.Thumbnails).URL,
+		Type:      "playlist",
+		DateAdded: time.Now().Local().String(),
+	}, nil
+}
+
+func RemoveFavoriteDB(discordClient *botClient.BotClient, db *sql.DB, userId string, videoId string) error {
+	var statement, err = db.Prepare("DELETE FROM Favorites WHERE user_id = ? AND video_id = ?")
+	defer statement.Close()
+	if err != nil {
+		utils.Logger.Error(err.Error())
+		return errors.New("internal error")
+	}
+
+	_, err2 := statement.Exec(userId, videoId)
+	if err2 != nil {
+		utils.Logger.Error(err2.Error())
+		return errors.New("internal error")
+	}
+
+	return nil
 }

@@ -2,7 +2,7 @@ package api
 
 import (
 	"afho__backend/botClient"
-	"log"
+	"afho__backend/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -17,11 +17,14 @@ type Handler struct {
 }
 
 func (handler *Handler) Init(discordClient *botClient.BotClient) {
+	utils.Logger.Debug("Initialising API handler")
 	handler.discordClient = discordClient
+	utils.Logger.Debug("Creating supabase client")
 	handler.supabaseClient = supa.CreateClient(discordClient.Config.SupaBaseUrl, discordClient.Config.SupaKey)
 
 	handler.setMode()
 
+	utils.Logger.Debug("Waiting for bot to be ready")
 	<-discordClient.ReadyChannel // Wait for bot to be ready
 
 	handler.initRouter()
@@ -30,10 +33,12 @@ func (handler *Handler) Init(discordClient *botClient.BotClient) {
 		Handler: handler.router,
 	}
 
+	utils.Logger.Debug("API Starting...")
 	handler.run()
 }
 
 func (handler *Handler) initRouter() {
+	utils.Logger.Debug("Initialising API router")
 	handler.router = gin.Default()
 	handler.router.Use(handler.readyMiddleware)
 
@@ -56,6 +61,8 @@ func (handler *Handler) initRouter() {
 	musicGroup.POST("/unpause", handler.checkUserMiddleware, handler.postUnpause)
 	musicGroup.POST("/playfirst", handler.checkUserMiddleware, handler.postPlayFirst)
 	musicGroup.POST("/shuffle", handler.checkUserMiddleware, handler.postSuffle)
+	musicGroup.POST("/addFav", handler.checkUserMiddleware, handler.postAddFav)
+	musicGroup.DELETE("/delFav", handler.checkUserMiddleware, handler.postRemoveFav)
 
 	// --- ADMIN ---
 	musicGroup.POST("/remove", handler.checkUserMiddleware, handler.checkAdminMiddleware, handler.postRemove)
@@ -68,25 +75,28 @@ func (handler *Handler) initRouter() {
 
 func (handler *Handler) setMode() {
 	if gin.Mode() != gin.ReleaseMode && handler.discordClient.Config.IsProduction {
+		utils.Logger.Debug("Setting gin mode to release")
 		gin.SetMode(gin.ReleaseMode)
 		return
 	}
 
 	if gin.Mode() != gin.DebugMode && !handler.discordClient.Config.IsProduction {
+		utils.Logger.Debug("Setting gin mode to debug")
 		gin.SetMode(gin.DebugMode)
 	}
 }
 
 func (handler *Handler) run() {
 	if handler.discordClient.Config.CertFile != "" && handler.discordClient.Config.KeyFile != "" {
-		log.Println("Starting HTTPS server")
+		utils.Logger.Info("Starting HTTPS server")
 		if err := handler.Server.ListenAndServeTLS(handler.discordClient.Config.CertFile, handler.discordClient.Config.KeyFile); err != nil && err != http.ErrServerClosed {
-			log.Fatalln(err.Error())
+			utils.Logger.Fatal(err.Error())
 		}
 		return
 	}
 
+	utils.Logger.Info("Starting HTTP server")
 	if err := handler.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalln(err.Error())
+		utils.Logger.Fatal(err.Error())
 	}
 }

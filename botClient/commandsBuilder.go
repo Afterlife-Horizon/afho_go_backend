@@ -2,9 +2,6 @@ package botClient
 
 import (
 	"afho__backend/utils"
-	"fmt"
-	"log"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -15,17 +12,21 @@ type CommandsBuilder struct {
 }
 
 func (builder *CommandsBuilder) AddCommand(command *discordgo.ApplicationCommand) error {
+	utils.Logger.Debugf("Adding Command '%v'\n", command.Name)
 	builder.Commands = append(builder.Commands, command)
 	return nil
 }
 
 func (builder *CommandsBuilder) Init(client *BotClient) {
+	utils.Logger.Debug("Initialising Commands Builder")
+
+	utils.Logger.Debug("Adding Commands")
 	err := builder.AddCommand(&discordgo.ApplicationCommand{
 		Name:        "join",
 		Description: "Make the bot join the voice channel you are currently in",
 	})
 	if err != nil {
-		log.Printf("Cannot add '%v' command: %v\n", "join", err)
+		utils.Logger.Errorf("Cannot add '%v' command: %v\n", "join", err)
 	}
 
 	// ---------------------------- //
@@ -34,7 +35,7 @@ func (builder *CommandsBuilder) Init(client *BotClient) {
 		Description: "Make the bot leave the voice channel",
 	})
 	if err != nil {
-		log.Printf("Cannot add '%v' command: %v\n", "leave", err)
+		utils.Logger.Errorf("Cannot add '%v' command: %v\n", "leave", err)
 	}
 
 	// ---------------------------- //
@@ -43,7 +44,7 @@ func (builder *CommandsBuilder) Init(client *BotClient) {
 		Description: "Pause the music",
 	})
 	if err != nil {
-		log.Printf("Cannot add '%v' command: %v\n", "pause", err)
+		utils.Logger.Errorf("Cannot add '%v' command: %v\n", "pause", err)
 	}
 
 	// ---------------------------- //
@@ -52,7 +53,7 @@ func (builder *CommandsBuilder) Init(client *BotClient) {
 		Description: "Unpause the music",
 	})
 	if err != nil {
-		log.Printf("Cannot add '%v' command: %v\n", "unpause", err)
+		utils.Logger.Errorf("Cannot add '%v' command: %v\n", "unpause", err)
 	}
 
 	// ---------------------------- //
@@ -67,7 +68,7 @@ func (builder *CommandsBuilder) Init(client *BotClient) {
 		}},
 	})
 	if err != nil {
-		log.Printf("Cannot add '%v' command: %v\n", "play", err)
+		utils.Logger.Errorf("Cannot add '%v' command: %v\n", "play", err)
 	}
 
 	// ---------------------------- //
@@ -82,7 +83,7 @@ func (builder *CommandsBuilder) Init(client *BotClient) {
 		}},
 	})
 	if err != nil {
-		log.Printf("Cannot add '%v' command: %v\n", "addontop", err)
+		utils.Logger.Errorf("Cannot add '%v' command: %v\n", "addontop", err)
 	}
 
 	// ---------------------------- //
@@ -91,7 +92,7 @@ func (builder *CommandsBuilder) Init(client *BotClient) {
 		Description: "skip the music",
 	})
 	if err != nil {
-		log.Printf("Cannot add '%v' command: %v\n", "skip", err)
+		utils.Logger.Errorf("Cannot add '%v' command: %v\n", "skip", err)
 	}
 
 	// ---------------------------- //
@@ -106,7 +107,7 @@ func (builder *CommandsBuilder) Init(client *BotClient) {
 		}},
 	})
 	if err != nil {
-		log.Printf("Cannot add '%v' command: %v\n", "seek", err)
+		utils.Logger.Errorf("Cannot add '%v' command: %v\n", "seek", err)
 	}
 
 	// ---------------------------- //
@@ -121,7 +122,7 @@ func (builder *CommandsBuilder) Init(client *BotClient) {
 		}},
 	})
 	if err != nil {
-		log.Printf("Cannot add '%v' command: %v\n", "seek", err)
+		utils.Logger.Errorf("Cannot add '%v' command: %v\n", "seek", err)
 	}
 
 	// ---------------------------- //
@@ -130,7 +131,7 @@ func (builder *CommandsBuilder) Init(client *BotClient) {
 		Description: "shuffle the queue",
 	})
 	if err != nil {
-		log.Printf("Cannot add '%v' command: %v\n", "skip", err)
+		utils.Logger.Errorf("Cannot add '%v' command: %v\n", "skip", err)
 	}
 
 	// ---------------------------- //
@@ -145,7 +146,7 @@ func (builder *CommandsBuilder) Init(client *BotClient) {
 		}},
 	})
 	if err != nil {
-		log.Printf("Cannot add '%v' command: %v\n", "addbirthday", err)
+		utils.Logger.Errorf("Cannot add '%v' command: %v\n", "addbirthday", err)
 	}
 
 	// ---------------------------- //
@@ -165,166 +166,54 @@ func (builder *CommandsBuilder) Init(client *BotClient) {
 		}},
 	})
 	if err != nil {
-		log.Printf("Cannot add '%v' command: %v\n", "addchatsound", err)
+		utils.Logger.Errorf("Cannot add '%v' command: %v\n", "addchatsound", err)
 	}
 
 	builder.initHandlers(client)
 }
 
 func (builder *CommandsBuilder) initHandlers(client *BotClient) {
+	utils.Logger.Debug("Initialising Command Handlers")
 	builder.Handlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"join": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			var returnValue, error = HandleJoin(s, i.GuildID, i.Member.User.ID)
-			if error != nil {
-				log.Println(error.Error())
-			}
-			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-				Content: returnValue,
-			})
-		},
-		"leave": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			var returnValue = HandleLeave(s, i.GuildID)
-
-			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-				Content: returnValue,
-			})
-		},
-		"play": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if i.ApplicationCommandData().Options[0] == nil {
-				utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-					Content: "Please provide a search term or a URL",
-				})
-				return
-			}
-			var input = i.ApplicationCommandData().Options[0].StringValue()
-
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "Searching for " + input,
-				},
-			})
-
-			var returnValue, _ = client.MusicHandler.Add(client, input, i.Member.User.Username, i.Member.User.ID, false)
-			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-				Content: &returnValue,
-			})
-		},
-		"addontop": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if client.MusicHandler.Queue.Tracks.Data == nil || len(client.MusicHandler.Queue.Tracks.Data) == 0 {
-				utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-					Content: "Please use /play instead",
-				})
-				return
-			}
-
-			if i.ApplicationCommandData().Options[0] == nil {
-				utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-					Content: "Please provide a search term or a URL",
-				})
-				return
-			}
-
-			var input = i.ApplicationCommandData().Options[0].StringValue()
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "Searching for " + input,
-				},
-			})
-
-			var returnValue, _ = client.MusicHandler.AddOnTop(client, input, i.Member.User.Username, i.Member.User.ID)
-			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-				Content: &returnValue,
-			})
-		},
-		"pause": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			client.MusicHandler.SetPause(true)
-			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-				Content: "paused",
-			})
-		},
-		"unpause": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			client.MusicHandler.SetPause(true)
-			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-				Content: "unpaused",
-			})
-		},
-		"skip": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			client.MusicHandler.Skip(client)
-
-			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-				Content: "skipped",
-			})
-		},
-		"seek": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if i.ApplicationCommandData().Options[0] == nil {
-				utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-					Content: "Please provide a timecode",
-				})
-				return
-			}
-			var input = i.ApplicationCommandData().Options[0].IntValue()
-
-			var newPosition = time.Duration(input) * time.Second
-
-			client.MusicHandler.Seek(client, newPosition)
-
-			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("seeked to %vs", newPosition),
-			})
-		},
-		"bresil": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if i.ApplicationCommandData().Options[0] == nil {
-				utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-					Content: "Please provide a user",
-				})
-				return
-			}
-			var input = i.ApplicationCommandData().Options[0].UserValue(s)
-
-			var output, _ = client.BrazilUser(i.Member.User, input)
-
-			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-				Content: output,
-			})
-		},
-		"addbirthday": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		},
-		"addchatsound": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		},
-		"shuffle": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			client.MusicHandler.Shuffle(client)
-
-			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-				Content: "shuffled",
-			})
-		},
+		"join":         JoinHandler,
+		"leave":        leaveHandler,
+		"play":         playHandler(client),
+		"addontop":     addOnTopHandler(client),
+		"pause":        pauseHandler(client),
+		"unpause":      unpausehandler(client),
+		"skip":         skipHandler(client),
+		"seek":         seekHandler(client),
+		"bresil":       bresilHandler(client),
+		"addbirthday":  addbirthdayHandler(client),
+		"addchatsound": addChatSoundHandler(client),
+		"shuffle":      shuffleHandler(client),
 	}
 }
 
 func (builder *CommandsBuilder) RegisterCommands(client *BotClient) {
+	utils.Logger.Debug("Registering Commands")
 	for index, command := range builder.Commands {
-		log.Printf("Adding command '%v'\n", command.Name)
+		utils.Logger.Infof("Adding command '%v'\n", command.Name)
 		cmd, err := client.Session.ApplicationCommandCreate(client.Session.State.User.ID, client.Config.GuildID, command)
 		if err != nil {
-			log.Printf("Cannot create '%v' command: %v\n", command.Name, err)
+			utils.Logger.Infof("Cannot create '%v' command: %v\n", command.Name, err)
 		}
 		builder.Commands[index] = cmd
 	}
 }
 
 func (builder *CommandsBuilder) DeleteCommands(client *BotClient) {
+	utils.Logger.Debug("Deleting Commands")
 	commands, err := client.Session.ApplicationCommands(client.Session.State.User.ID, client.Config.GuildID)
 	if err != nil {
-		log.Fatalf("Cannot get commands: %v\n", err)
+		utils.Logger.Fatalf("Cannot get commands: %v\n", err)
 	}
 	for _, command := range commands {
-		log.Printf("Deleting command '%v'\n", command.Name)
+		utils.Logger.Infof("Deleting command '%v'\n", command.Name)
 
 		err := client.Session.ApplicationCommandDelete(client.Session.State.User.ID, client.Config.GuildID, command.ID)
 		if err != nil {
-			log.Printf("Cannot delete '%v' command: %v\n", command.Name, err)
+			utils.Logger.Errorf("Cannot delete '%v' command: %v\n", command.Name, err)
 		}
 	}
 }

@@ -7,7 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"log"
 	"os/signal"
 	"syscall"
 	"time"
@@ -30,6 +29,7 @@ var delCommandsFlag = flag.Bool("del-commands", false, "Delete commands from dis
 
 func main() {
 	flag.Parse()
+	utils.InitLogger()
 
 	initDBConnection()
 	initDiscordClient()
@@ -43,7 +43,9 @@ func main() {
 func everyMinuteLoop() {
 	// <-discordClient.ReadyChannel
 	for range tickerMinute.C {
-		discordClient.CacheHandler.UpdateCache(discordClient)
+		utils.Logger.Debug("Cache and DB update loop run!")
+		discordClient.CacheHandler.UpdateCache()
+		discordClient.CacheHandler.UpdateDB()
 	}
 }
 
@@ -56,6 +58,7 @@ func initAPI() {
 }
 
 func initDBConnection() {
+	utils.Logger.Debug("Initialising DB connection")
 	cfg := mysql.Config{
 		User:                 env.DbUser,
 		Passwd:               env.DbPass,
@@ -68,32 +71,42 @@ func initDBConnection() {
 	var err error
 	db, err = sql.Open("mysql", cfg.FormatDSN())
 	if err != nil {
-		log.Fatalln(err.Error())
+		utils.Logger.Fatal(err.Error())
 	}
 
 	pingErr := db.Ping()
 	if pingErr != nil {
-		log.Fatal(pingErr)
+		utils.Logger.Fatal(pingErr)
 	}
-	log.Println("DB Connected!")
+	utils.Logger.Info("DB Connected!")
 }
 
 func gracefulShutdown() {
+	utils.Logger.Debug("Setting up graceful shutdown")
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	<-ctx.Done()
-	log.Println("Gracefully Shutting Down!")
+	utils.Logger.Info("Gracefully Shutting Down!")
 
 	tickerMinute.Stop()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	utils.Logger.Debug("Shutting down API and Discord Client")
 	if err := apiHandler.Server.Shutdown(ctx); err != nil {
-		log.Fatalln(err.Error())
+		utils.Logger.Fatal(err.Error())
 	}
 
+	utils.Logger.Debug("Shutting down Discord Client")
+	utils.Logger.Debug("Updating DB values")
+	discordClient.UpdateDB()
+
 	if err := discordClient.Session.Close(); err != nil {
-		log.Fatalln(err.Error())
+		utils.Logger.Fatal(err.Error())
 	}
+
+	utils.Logger.Debug("Closing DB connection")
+	db.Close()
 }

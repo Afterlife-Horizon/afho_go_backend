@@ -1,8 +1,9 @@
 package botClient
 
 import (
+	"afho__backend/utils"
 	"errors"
-	"log"
+	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -10,36 +11,58 @@ import (
 
 type VoiceHandler struct {
 	client                *BotClient
-	userCurrentVoiceTimes map[string]time.Duration
+	userCurrentVoiceTimes map[string]time.Time
 }
 
-func NewVoiceHandler(client *BotClient) VoiceHandler {
-	return VoiceHandler{
-		client:                client,
-		userCurrentVoiceTimes: make(map[string]time.Duration),
+func (v *VoiceHandler) Init(client *BotClient) {
+	v.client = client
+	v.userCurrentVoiceTimes = make(map[string]time.Time, 100)
+	utils.Logger.Debug("Initialising Voice Handler")
+	v.client.CacheHandler.updateConnectedMembers(v.client, nil)
+	for _, voiceState := range v.client.CacheHandler.VoiceConnectedMembers.Data {
+		v.StartUserTime(voiceState.User.ID)
 	}
+}
+
+func (v *VoiceHandler) StartUserTime(userID string) {
+	utils.Logger.Debug("Starting time for user", userID)
+	v.userCurrentVoiceTimes[userID] = time.Now()
 }
 
 func (v *VoiceHandler) UpdateDBTime() {
+	utils.Logger.Debug("Updating time for all users")
+	wg := sync.WaitGroup{}
+	timeLock := sync.RWMutex{}
+
 	for userID := range v.userCurrentVoiceTimes {
-		v.updateUserDBTime(userID)
+		wg.Add(1)
+		go v.updateUserDBTime(userID, &wg, &timeLock)
 	}
+	wg.Wait()
 }
 
-func (v *VoiceHandler) updateUserDBTime(userID string) {
-	var stmt, err = v.client.DB.Prepare("INSERT INTO Time_connected (user_id, time_spent) VALUES (?, ?) ON DUPLICATE KEY UPDATE time = time + ?")
+func (v *VoiceHandler) updateUserDBTime(userID string, wg *sync.WaitGroup, timeLock *sync.RWMutex) {
+	defer wg.Done()
+	var stmt, err = v.client.DB.Prepare("INSERT INTO Time_connected (user_id, time_spent) VALUES (?, ?) ON DUPLICATE KEY UPDATE time_spent = time_spent + ?")
+	defer stmt.Close()
 	if err != nil {
-		log.Println(err.Error())
+		utils.Logger.Error(err.Error())
 		return
 	}
 
-	_, err = stmt.Exec(v.userCurrentVoiceTimes[userID].Seconds(), userID)
+	timeLock.RLock()
+	var currentActiveTime = time.Now().Unix() - v.userCurrentVoiceTimes[userID].Unix()
+	timeLock.RUnlock()
+	utils.Logger.Debugf("Updating time for user %v, adding %vs", userID, currentActiveTime)
+	_, err = stmt.Exec(userID, currentActiveTime, currentActiveTime)
 	if err != nil {
-		log.Println(err.Error())
+		utils.Logger.Error(err.Error())
 		return
 	}
 
-	v.userCurrentVoiceTimes[userID] = 0
+	timeLock.Lock()
+	v.userCurrentVoiceTimes[userID] = time.Now()
+	timeLock.Unlock()
 }
 
 func (v *VoiceHandler) JoinVoiceChannel(channelID string) error {
@@ -53,9 +76,10 @@ func (v *VoiceHandler) JoinVoiceChannel(channelID string) error {
 }
 
 func HandleJoin(s *discordgo.Session, GuildID string, userID string) (string, error) {
+	utils.Logger.Debug("Joining Voice Channel", GuildID, userID)
 	var voiceState, err = s.State.VoiceState(GuildID, userID)
 	if err != nil {
-		log.Println(err.Error())
+		utils.Logger.Error(err.Error())
 		return "Could not join voice channel!", err
 	}
 
