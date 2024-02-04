@@ -56,14 +56,16 @@ func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
 	defer statement.Close()
 	if err != nil {
 		utils.Logger.Error(err.Error())
+		return []Level{}
 	}
 
 	var rows, err2 = statement.Query()
 	if err2 != nil {
 		utils.Logger.Error(err2.Error())
+		return []Level{}
 	}
 
-	var result []Level
+	var result []Level = make([]Level, 100)
 	for rows.Next() {
 		var tmp = Level{}
 		err3 := rows.Scan(&tmp.User.User_id, &tmp.Xp)
@@ -100,7 +102,7 @@ func getBrasilBoardDB(db *sql.DB, discordClient *botClient.BotClient) []BrasilBo
 		utils.Logger.Error(err2.Error())
 	}
 
-	var result []BrasilBoard
+	var result []BrasilBoard = make([]BrasilBoard, 100)
 	for rows.Next() {
 		var tmp = BrasilBoard{}
 		err3 := rows.Scan(&tmp.User.User_id, &tmp.BresilReceived, &tmp.BresilSent)
@@ -135,7 +137,7 @@ func GetTimesDB(discordClient *botClient.BotClient, db *sql.DB) []Time {
 		utils.Logger.Error(err2.Error())
 	}
 
-	var result []Time
+	var result []Time = make([]Time, 100)
 	for rows.Next() {
 		var tmp = Time{}
 		err3 := rows.Scan(&tmp.User.User_id, &tmp.TimeSpent)
@@ -172,7 +174,7 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 
 	var tmpAll = make(map[string]APIAchievement, len(discordClient.CacheHandler.Members.Data))
 
-	var result []APIAchievement
+	var result []APIAchievement = make([]APIAchievement, 100)
 	for rows.Next() {
 		var userId string
 		var tmpAchievement = Achievement{}
@@ -225,7 +227,7 @@ func GetFavsDB(discordClient *botClient.BotClient, db *sql.DB, userId string) ([
 		return nil, errors.New("internal error")
 	}
 
-	var result []Fav
+	var result []Fav = make([]Fav, 100)
 	for rows.Next() {
 		var tmp = Fav{}
 		err3 := rows.Scan(&tmp.User_id, &tmp.Id, &tmp.Url, &tmp.Name, &tmp.Thumbnail, &tmp.Type, &tmp.DateAdded)
