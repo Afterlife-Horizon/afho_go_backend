@@ -9,7 +9,11 @@ import (
 var Logger *log.Logger
 
 func InitLogger() {
-	if os.Getenv("ENV") == "production" {
+	isProduction, ok := os.LookupEnv("IS_PRODUCTION")
+	if !ok || (isProduction != "true" && isProduction != "false") {
+		isProduction = "false"
+	}
+	if isProduction == "true" {
 		Logger = log.New(os.Stdout).WithColor().WithoutDebug().WithTimestamp()
 		return
 	}
