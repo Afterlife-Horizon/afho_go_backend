@@ -20,6 +20,7 @@ func GetUserAvatar(discordClient *botClient.BotClient, userID string) string {
 	})
 	if err4 != nil {
 		utils.Logger.Error(err4.Error())
+		return ""
 	}
 
 	var avatarURL = member.User.Avatar
@@ -71,6 +72,7 @@ func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
 		err3 := rows.Scan(&tmp.User.User_id, &tmp.Xp)
 		if err3 != nil {
 			utils.Logger.Error(err3.Error())
+			continue
 		}
 
 		tmp.Lvl = int(XptoLvl(tmp.Xp))
@@ -80,6 +82,7 @@ func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
 		})
 		if err4 != nil {
 			utils.Logger.Error(err4.Error())
+			continue
 		}
 
 		tmp.User.DisplayAvatarURL = GetUserAvatar(discordClient, member.User.ID)
@@ -95,11 +98,13 @@ func getBrasilBoardDB(db *sql.DB, discordClient *botClient.BotClient) []BrasilBo
 	defer statement.Close()
 	if err != nil {
 		utils.Logger.Error(err.Error())
+		return []BrasilBoard{}
 	}
 
 	var rows, err2 = statement.Query()
 	if err2 != nil {
 		utils.Logger.Error(err2.Error())
+		return []BrasilBoard{}
 	}
 
 	var result []BrasilBoard = make([]BrasilBoard, 100)
@@ -108,6 +113,7 @@ func getBrasilBoardDB(db *sql.DB, discordClient *botClient.BotClient) []BrasilBo
 		err3 := rows.Scan(&tmp.User.User_id, &tmp.BresilReceived, &tmp.BresilSent)
 		if err3 != nil {
 			utils.Logger.Error(err3.Error())
+			continue
 		}
 
 		member, err4 := discordClient.CacheHandler.Members.Get(func(t *discordgo.Member) bool {
@@ -130,11 +136,13 @@ func GetTimesDB(discordClient *botClient.BotClient, db *sql.DB) []Time {
 	defer statement.Close()
 	if err != nil {
 		utils.Logger.Error(err.Error())
+		return []Time{}
 	}
 
 	var rows, err2 = statement.Query()
 	if err2 != nil {
 		utils.Logger.Error(err2.Error())
+		return []Time{}
 	}
 
 	var result []Time = make([]Time, 100)
@@ -143,6 +151,7 @@ func GetTimesDB(discordClient *botClient.BotClient, db *sql.DB) []Time {
 		err3 := rows.Scan(&tmp.User.User_id, &tmp.TimeSpent)
 		if err3 != nil {
 			utils.Logger.Error(err3.Error())
+			continue
 		}
 
 		member, err4 := discordClient.CacheHandler.Members.Get(func(t *discordgo.Member) bool {
@@ -150,6 +159,7 @@ func GetTimesDB(discordClient *botClient.BotClient, db *sql.DB) []Time {
 		})
 		if err4 != nil {
 			utils.Logger.Error(err4.Error())
+			continue
 		}
 
 		tmp.User.DisplayAvatarURL = GetUserAvatar(discordClient, member.User.ID)
@@ -181,6 +191,7 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 		err3 := rows.Scan(&userId, &tmpAchievement.Name, &tmpAchievement.Type, &tmpAchievement.Requirements)
 		if err3 != nil {
 			utils.Logger.Error(err3.Error())
+			continue
 		}
 
 		member, err4 := discordClient.CacheHandler.Members.Get(func(t *discordgo.Member) bool {
@@ -188,6 +199,7 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 		})
 		if err4 != nil {
 			utils.Logger.Error(err4.Error())
+			continue
 		}
 
 		if val, ok := tmpAll[userId]; ok {
@@ -233,7 +245,7 @@ func GetFavsDB(discordClient *botClient.BotClient, db *sql.DB, userId string) ([
 		err3 := rows.Scan(&tmp.User_id, &tmp.Id, &tmp.Url, &tmp.Name, &tmp.Thumbnail, &tmp.Type, &tmp.DateAdded)
 		if err3 != nil {
 			utils.Logger.Error(err3.Error())
-			return nil, errors.New("internal error")
+			continue
 		}
 
 		result = append(result, tmp)
