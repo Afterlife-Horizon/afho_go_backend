@@ -12,6 +12,7 @@ type BrasilBoard struct {
 }
 
 type User struct {
+	Username         string `json:"username"`
 	User_id          string `json:"user_id"`
 	DisplayAvatarURL string `json:"displayAvatarURL"`
 }

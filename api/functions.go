@@ -86,6 +86,7 @@ func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
 			continue
 		}
 
+		tmp.User.Username = member.User.Username
 		tmp.User.DisplayAvatarURL = GetUserAvatar(discordClient, member.User.ID)
 
 		result = append(result, tmp)
@@ -124,6 +125,7 @@ func getBrasilBoardDB(db *sql.DB, discordClient *botClient.BotClient) []BrasilBo
 			utils.Logger.Error(err4.Error())
 		}
 
+		tmp.User.Username = member.User.Username
 		tmp.User.DisplayAvatarURL = GetUserAvatar(discordClient, member.User.ID)
 
 		result = append(result, tmp)
@@ -163,6 +165,7 @@ func GetTimesDB(discordClient *botClient.BotClient, db *sql.DB) []Time {
 			continue
 		}
 
+		tmp.User.Username = member.User.Username
 		tmp.User.DisplayAvatarURL = GetUserAvatar(discordClient, member.User.ID)
 
 		result = append(result, tmp)
