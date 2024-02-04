@@ -55,12 +55,12 @@ func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
 	var statement, err = db.Prepare("SELECT * FROM Levels")
 	defer statement.Close()
 	if err != nil {
-		panic(err.Error())
+		utils.Logger.Error(err.Error())
 	}
 
 	var rows, err2 = statement.Query()
 	if err2 != nil {
-		panic(err2.Error())
+		utils.Logger.Error(err2.Error())
 	}
 
 	var result []Level
@@ -68,7 +68,7 @@ func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
 		var tmp = Level{}
 		err3 := rows.Scan(&tmp.User.User_id, &tmp.Xp)
 		if err3 != nil {
-			panic(err3.Error())
+			utils.Logger.Error(err3.Error())
 		}
 
 		tmp.Lvl = int(XptoLvl(tmp.Xp))
@@ -77,7 +77,7 @@ func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
 			return t.User.ID == tmp.User.User_id
 		})
 		if err4 != nil {
-			panic(err4.Error())
+			utils.Logger.Error(err4.Error())
 		}
 
 		tmp.User.DisplayAvatarURL = GetUserAvatar(discordClient, member.User.ID)
@@ -92,12 +92,12 @@ func getBrasilBoardDB(db *sql.DB, discordClient *botClient.BotClient) []BrasilBo
 	var statement, err = db.Prepare("SELECT * FROM Bresil_count")
 	defer statement.Close()
 	if err != nil {
-		panic(err.Error())
+		utils.Logger.Error(err.Error())
 	}
 
 	var rows, err2 = statement.Query()
 	if err2 != nil {
-		panic(err2.Error())
+		utils.Logger.Error(err2.Error())
 	}
 
 	var result []BrasilBoard
@@ -105,14 +105,14 @@ func getBrasilBoardDB(db *sql.DB, discordClient *botClient.BotClient) []BrasilBo
 		var tmp = BrasilBoard{}
 		err3 := rows.Scan(&tmp.User.User_id, &tmp.BresilReceived, &tmp.BresilSent)
 		if err3 != nil {
-			panic(err3.Error())
+			utils.Logger.Error(err3.Error())
 		}
 
 		member, err4 := discordClient.CacheHandler.Members.Get(func(t *discordgo.Member) bool {
 			return t.User.ID == tmp.User.User_id
 		})
 		if err4 != nil {
-			panic(err4.Error())
+			utils.Logger.Error(err4.Error())
 		}
 
 		tmp.User.DisplayAvatarURL = GetUserAvatar(discordClient, member.User.ID)
@@ -127,12 +127,12 @@ func GetTimesDB(discordClient *botClient.BotClient, db *sql.DB) []Time {
 	var statement, err = db.Prepare("SELECT * FROM Time_connected")
 	defer statement.Close()
 	if err != nil {
-		panic(err.Error())
+		utils.Logger.Error(err.Error())
 	}
 
 	var rows, err2 = statement.Query()
 	if err2 != nil {
-		panic(err2.Error())
+		utils.Logger.Error(err2.Error())
 	}
 
 	var result []Time
@@ -140,14 +140,14 @@ func GetTimesDB(discordClient *botClient.BotClient, db *sql.DB) []Time {
 		var tmp = Time{}
 		err3 := rows.Scan(&tmp.User.User_id, &tmp.TimeSpent)
 		if err3 != nil {
-			panic(err3.Error())
+			utils.Logger.Error(err3.Error())
 		}
 
 		member, err4 := discordClient.CacheHandler.Members.Get(func(t *discordgo.Member) bool {
 			return t.User.ID == tmp.User.User_id
 		})
 		if err4 != nil {
-			panic(err4.Error())
+			utils.Logger.Error(err4.Error())
 		}
 
 		tmp.User.DisplayAvatarURL = GetUserAvatar(discordClient, member.User.ID)
@@ -162,12 +162,12 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 	var statement, err = db.Prepare("SELECT user_id, achievement_name, Achievement_get.type, requirements FROM Achievement_get, Achievements WHERE Achievement_get.achievement_name = Achievements.name")
 	defer statement.Close()
 	if err != nil {
-		panic(err.Error())
+		utils.Logger.Error(err.Error())
 	}
 
 	var rows, err2 = statement.Query()
 	if err2 != nil {
-		panic(err2.Error())
+		utils.Logger.Error(err2.Error())
 	}
 
 	var tmpAll = make(map[string]APIAchievement, len(discordClient.CacheHandler.Members.Data))
@@ -178,14 +178,14 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 		var tmpAchievement = Achievement{}
 		err3 := rows.Scan(&userId, &tmpAchievement.Name, &tmpAchievement.Type, &tmpAchievement.Requirements)
 		if err3 != nil {
-			panic(err3.Error())
+			utils.Logger.Error(err3.Error())
 		}
 
 		member, err4 := discordClient.CacheHandler.Members.Get(func(t *discordgo.Member) bool {
 			return t.User.ID == userId
 		})
 		if err4 != nil {
-			panic(err4.Error())
+			utils.Logger.Error(err4.Error())
 		}
 
 		if val, ok := tmpAll[userId]; ok {
