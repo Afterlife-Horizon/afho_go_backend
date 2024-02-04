@@ -205,6 +205,7 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 		if val, ok := tmpAll[userId]; ok {
 			val.Achievements = append(val.Achievements, tmpAchievement)
 			tmpAll[userId] = val
+			fmt.Println(val, tmpAll[userId])
 		} else {
 			var tmp = APIAchievement{
 				Id:       member.User.ID,
