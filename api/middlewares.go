@@ -15,12 +15,11 @@ func (handler *Handler) readyMiddleware(c *gin.Context) {
 		return
 	}
 	c.Next()
-
 }
 
 func (handler *Handler) checkUserMiddleware(c *gin.Context) {
-	var ok = true
-	var userToken = c.Request.Header.Get("Authorization")
+	ok := true
+	userToken := c.Request.Header.Get("Authorization")
 	if userToken == "" {
 		c.AbortWithStatusJSON(400, gin.H{
 			"error": "Missing Authorization header",
@@ -42,12 +41,11 @@ func (handler *Handler) checkUserMiddleware(c *gin.Context) {
 		c.Set("user", user)
 		c.Next()
 	}
-
 }
 
 func (handler *Handler) checkAdminMiddleware(c *gin.Context) {
-	var user = c.MustGet("user").(*supa.User)
-	var admins = GetAdmins(handler.discordClient)
+	user := c.MustGet("user").(*supa.User)
+	admins := GetAdmins(handler.discordClient)
 
 	var isAdmin bool
 	for _, admin := range admins {
@@ -64,5 +62,4 @@ func (handler *Handler) checkAdminMiddleware(c *gin.Context) {
 			"error": "User is not admin",
 		})
 	}
-
 }

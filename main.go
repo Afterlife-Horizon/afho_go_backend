@@ -14,15 +14,21 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-var db *sql.DB
-var apiHandler *api.Handler = &api.Handler{}
-var discordClient *botClient.BotClient = &botClient.BotClient{}
+var (
+	db            *sql.DB
+	apiHandler    *api.Handler         = &api.Handler{}
+	discordClient *botClient.BotClient = &botClient.BotClient{}
+)
 
-var tickerMinute *time.Ticker = time.NewTicker(time.Minute)
-var env utils.Env
+var (
+	tickerMinute *time.Ticker = time.NewTicker(time.Minute)
+	env          utils.Env
+)
 
-var addCommandsFlag = flag.Bool("add-commands", false, "Add new commands to discord servers")
-var delCommandsFlag = flag.Bool("del-commands", false, "Delete commands from discord servers")
+var (
+	addCommandsFlag = flag.Bool("add-commands", false, "Add new commands to discord servers")
+	delCommandsFlag = flag.Bool("del-commands", false, "Delete commands from discord servers")
+)
 
 func main() {
 	flag.Parse()

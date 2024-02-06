@@ -11,15 +11,15 @@ import (
 )
 
 type BotClient struct {
-	Ready           bool
-	ReadyChannel    chan bool
 	Config          utils.Env
+	ReadyChannel    chan bool
 	DB              *sql.DB
 	Session         *discordgo.Session
 	CacheHandler    *CacheHandler
 	MusicHandler    *MusicHandler
 	VoiceHandler    *VoiceHandler
 	CommandsBuilder *CommandsBuilder
+	Ready           bool
 }
 
 func (b *BotClient) Init(env utils.Env, db *sql.DB) {
@@ -43,7 +43,7 @@ func (b *BotClient) Init(env utils.Env, db *sql.DB) {
 	discord.AddHandler(MessageCreate(b))
 	discord.AddHandler(VoiceStateUpdate(b))
 	discord.AddHandler(InteractionCreate(b))
-	discord.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+	discord.AddHandler(func(_ *discordgo.Session, _ *discordgo.Ready) {
 		utils.Logger.Debug("Discord Bot Ready Event Received")
 		b.ReadyChannel = make(chan bool)
 
@@ -64,7 +64,7 @@ func (b *BotClient) Init(env utils.Env, db *sql.DB) {
 		b.VoiceHandler = &voiceHandler
 		utils.Logger.Info("Initialised Voice Handler")
 
-		var commandsBuilder = CommandsBuilder{}
+		commandsBuilder := CommandsBuilder{}
 		commandsBuilder.Init(b)
 		utils.Logger.Info("Initialised Commands Builder")
 
@@ -74,11 +74,11 @@ func (b *BotClient) Init(env utils.Env, db *sql.DB) {
 			b.CommandsBuilder.DeleteCommands(b)
 		}
 
-		if *b.Config.Flags.AddCommands {
+		if *b.Config.AddCommands {
 			commandsBuilder.RegisterCommands(b)
 		}
 
-		if *b.Config.Flags.AddCommands || *b.Config.DelCommands {
+		if *b.Config.AddCommands || *b.Config.DelCommands {
 			utils.Logger.Debug("Exiting after adding or deleting commands")
 			b.Session.Close()
 			os.Exit(0)
@@ -112,12 +112,12 @@ const (
 
 func (b *BotClient) BrazilUser(sender *discordgo.User, user *discordgo.User) (string, error) {
 	// check if user is in voice channel and if senders in the same voice channel
-	var senderVoiceState, err = b.Session.State.VoiceState(b.Config.GuildID, sender.ID)
+	senderVoiceState, err := b.Session.State.VoiceState(b.Config.GuildID, sender.ID)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		return "Could not find sender voice state", err
 	}
-	var userVoiceState, err2 = b.Session.State.VoiceState(b.Config.GuildID, user.ID)
+	userVoiceState, err2 := b.Session.State.VoiceState(b.Config.GuildID, user.ID)
 	if err2 != nil {
 		utils.Logger.Error(err2.Error())
 		return "Could not find user voice state", err2
@@ -128,7 +128,7 @@ func (b *BotClient) BrazilUser(sender *discordgo.User, user *discordgo.User) (st
 	}
 
 	// check if user is already in brasil
-	var isInBrasil = userVoiceState.ChannelID == b.Config.BrasilChannelID
+	isInBrasil := userVoiceState.ChannelID == b.Config.BrasilChannelID
 	if isInBrasil {
 		b.Session.ChannelMessageSend(b.Config.BaseChannelID, fmt.Sprintf("%v is already in brasil", user.Username))
 		return "User is already in brasil", errors.New("user is already in brasil")

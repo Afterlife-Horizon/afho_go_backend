@@ -104,17 +104,17 @@ func (effects *Effects) ToFilters() string {
 type Track struct {
 	Id                string `json:"id"`
 	Title             string `json:"title"`
-	Duration          int    `json:"duration"`
 	DurationFormatted string `json:"durationFormatted"`
 	Requester         string `json:"requester"`
 	Author            string `json:"author"`
 	Thumbnail         string `json:"thumbnail"`
+	Duration          int    `json:"duration"`
 }
 
 type Queue struct {
+	Tracks  []Track `json:"tracks"`
 	Effects Effects `json:"effects"`
 	Paused  bool    `json:"paused"`
-	Tracks  []Track `json:"tracks"`
 }
 
 type Level struct {
@@ -124,10 +124,10 @@ type Level struct {
 }
 
 type FetchResults struct {
-	Admins       []string `json:"admins"`
 	Formatedprog string   `json:"formatedprog"`
-	Prog         int      `json:"prog"`
+	Admins       []string `json:"admins"`
 	Queue        []Queue  `json:"queue"`
+	Prog         int      `json:"prog"`
 }
 
 type connectedMembers struct {
@@ -145,10 +145,10 @@ type Time struct {
 }
 
 type APIAchievement struct {
-	Counter      int8
 	Id           string        `json:"id"`
 	Username     string        `json:"username"`
 	Achievements []Achievement `json:"achievements"`
+	Counter      int8
 }
 
 type Achievement struct {

@@ -103,8 +103,8 @@ func (handler *Handler) getAchievements(c *gin.Context) {
 }
 
 func (handler *Handler) getFavs(c *gin.Context) {
-	var user = c.MustGet("user").(*supa.User)
-	var favs, err = GetFavsDB(handler.discordClient, handler.discordClient.DB, user.UserMetadata["provider_id"].(string))
+	user := c.MustGet("user").(*supa.User)
+	favs, err := GetFavsDB(handler.discordClient.DB, user.UserMetadata["provider_id"].(string))
 	if err != nil {
 		c.AbortWithStatusJSON(500, gin.H{
 			"error": err.Error(),
@@ -117,8 +117,8 @@ func (handler *Handler) getFavs(c *gin.Context) {
 }
 
 func (handler *Handler) postPlay(c *gin.Context) {
-	var user = c.MustGet("user").(*supa.User)
-	var body = struct {
+	user := c.MustGet("user").(*supa.User)
+	body := struct {
 		Songs string `json:"songs"`
 	}{}
 
@@ -176,8 +176,8 @@ func (handler *Handler) postUnpause(c *gin.Context) {
 }
 
 func (handler *Handler) postPlayFirst(c *gin.Context) {
-	var user = c.MustGet("user").(*supa.User)
-	var body = struct {
+	user := c.MustGet("user").(*supa.User)
+	body := struct {
 		Songs string `json:"songs"`
 	}{}
 
@@ -209,7 +209,7 @@ func (handler *Handler) postSuffle(c *gin.Context) {
 }
 
 func (handler *Handler) postRemove(c *gin.Context) {
-	var body = struct {
+	body := struct {
 		QueuePos int `json:"queuePos"`
 	}{}
 
@@ -225,7 +225,7 @@ func (handler *Handler) postRemove(c *gin.Context) {
 }
 
 func (handler *Handler) postSkipTo(c *gin.Context) {
-	var body = struct {
+	body := struct {
 		QueuePos int `json:"queuePos"`
 	}{}
 
@@ -241,7 +241,7 @@ func (handler *Handler) postSkipTo(c *gin.Context) {
 }
 
 func (handler *Handler) postFilters(c *gin.Context) {
-	var body = struct {
+	body := struct {
 		Filters Effects `json:"filters"`
 	}{}
 
@@ -259,8 +259,8 @@ func (handler *Handler) postFilters(c *gin.Context) {
 }
 
 func (handler *Handler) postBresil(c *gin.Context) {
-	var _ = c.MustGet("user").(*supa.User)
-	var body = struct {
+	_ = c.MustGet("user").(*supa.User)
+	body := struct {
 		MoverId string `json:"moverId"`
 		MovedId string `json:"movedId"`
 	}{}
@@ -294,7 +294,7 @@ func (handler *Handler) postBresil(c *gin.Context) {
 		return
 	}
 
-	var _, err = handler.discordClient.BrazilUser(mover.User, moved.User)
+	_, err := handler.discordClient.BrazilUser(mover.User, moved.User)
 
 	if err != nil {
 		c.AbortWithStatusJSON(500, gin.H{
@@ -307,8 +307,8 @@ func (handler *Handler) postBresil(c *gin.Context) {
 }
 
 func (handler *Handler) postAddFav(c *gin.Context) {
-	var user = c.MustGet("user").(*supa.User)
-	var body = struct {
+	user := c.MustGet("user").(*supa.User)
+	body := struct {
 		Url string `json:"url"`
 	}{}
 
@@ -319,7 +319,7 @@ func (handler *Handler) postAddFav(c *gin.Context) {
 		return
 	}
 
-	var _, err = AddFavDB(handler.discordClient, handler.discordClient.DB, user.UserMetadata["provider_id"].(string), body.Url)
+	_, err := AddFavDB(handler.discordClient, handler.discordClient.DB, user.UserMetadata["provider_id"].(string), body.Url)
 	if err != nil {
 		c.AbortWithStatusJSON(500, gin.H{
 			"error": err.Error(),
@@ -331,8 +331,8 @@ func (handler *Handler) postAddFav(c *gin.Context) {
 }
 
 func (handler *Handler) postRemoveFav(c *gin.Context) {
-	var user = c.MustGet("user").(*supa.User)
-	var body = struct {
+	user := c.MustGet("user").(*supa.User)
+	body := struct {
 		Id string `json:"id"`
 	}{}
 
@@ -343,7 +343,7 @@ func (handler *Handler) postRemoveFav(c *gin.Context) {
 		return
 	}
 
-	var err = RemoveFavoriteDB(handler.discordClient, handler.discordClient.DB, user.UserMetadata["provider_id"].(string), body.Id)
+	err := RemoveFavoriteDB(handler.discordClient.DB, user.UserMetadata["provider_id"].(string), body.Id)
 	if err != nil {
 		c.AbortWithStatusJSON(500, gin.H{
 			"error": err.Error(),

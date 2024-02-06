@@ -10,9 +10,9 @@ import (
 
 // FormatTime formats a time.Duration into a string with the format HH:MM:SS
 func FormatTime(t time.Duration) string {
-	var hours = int(t.Hours())
-	var minutes = int(t.Minutes()) % 60
-	var seconds = int(t.Seconds()) % 60
+	hours := int(t.Hours())
+	minutes := int(t.Minutes()) % 60
+	seconds := int(t.Seconds()) % 60
 
 	if hours == 0 && minutes == 0 {
 		return fmt.Sprintf("00:%02d", seconds)
@@ -24,7 +24,7 @@ func FormatTime(t time.Duration) string {
 }
 
 func GetMaxResThumbnail(thumbnails youtube.Thumbnails) youtube.Thumbnail {
-	var maxResThumbnail youtube.Thumbnail = youtube.Thumbnail{
+	maxResThumbnail := youtube.Thumbnail{
 		Width:  0,
 		Height: 0,
 	}
@@ -43,7 +43,7 @@ func InteractionReply(s *discordgo.Session, i *discordgo.InteractionCreate, mess
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: message,
 	}); err != nil {
-		Logger.Error("Error while replying to interaction", i.Interaction.ID, "with message", message.Content)
+		Logger.Error("Error while replying to interaction", i.ID, "with message", message.Content)
 		Logger.Error(err.Error())
 	}
 }
