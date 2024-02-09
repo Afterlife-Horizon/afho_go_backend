@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"flag"
+	"log"
 	"os/signal"
 	"syscall"
 	"time"
@@ -28,11 +29,17 @@ var (
 var (
 	addCommandsFlag = flag.Bool("add-commands", false, "Add new commands to discord servers")
 	delCommandsFlag = flag.Bool("del-commands", false, "Delete commands from discord servers")
+	debugFlag       = flag.Bool("debug", false, "Run in debug mode")
 )
 
 func main() {
 	flag.Parse()
-	utils.InitLogger()
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	utils.InitLogger(*debugFlag)
 	env = utils.LoadEnv(utils.Flags{
 		AddCommands: addCommandsFlag,
 		DelCommands: delCommandsFlag,

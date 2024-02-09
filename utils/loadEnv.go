@@ -2,8 +2,6 @@ package utils
 
 import (
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 type Env struct {
@@ -42,7 +40,6 @@ type Flags struct {
 }
 
 func LoadEnv(flags Flags) Env {
-	godotenv.Load()
 	isProduction, ok := os.LookupEnv("IS_PRODUCTION")
 	if !ok || (isProduction != "true" && isProduction != "false") {
 		Logger.Fatal("IS_PRODUCTION not found in environment variables, setting to false")
