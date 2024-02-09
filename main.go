@@ -106,11 +106,8 @@ func gracefulShutdown() {
 
 	tickerMinute.Stop()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	utils.Logger.Debug("Shutting down API and Discord Client")
-	if err := apiHandler.Server.Shutdown(ctx); err != nil {
+	if err := apiHandler.Server.Shutdown(context.Background()); err != nil {
 		utils.Logger.Fatal(err.Error())
 	}
 
