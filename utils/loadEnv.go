@@ -5,33 +5,22 @@ import (
 )
 
 type Env struct {
-	IsProduction bool
-
-	CertFile string
-	KeyFile  string
-
-	// Tokens
-	Discord_token string
-	YTApiKey      string
-
-	// IDs
+	Flags
+	AdminRoleID     string
+	DbUser          string
+	Discord_token   string
+	YTApiKey        string
 	GuildID         string
 	BaseChannelID   string
+	KeyFile         string
+	CertFile        string
 	BrasilChannelID string
-	AdminRoleID     string
-
-	// Database connection
-	DbUser    string
-	DbPass    string
-	DbName    string
-	DbAddress string
-
-	// Supabase connection
-	SupaBaseUrl string
-	SupaKey     string
-
-	// Flags
-	Flags
+	DbPass          string
+	DbName          string
+	DbAddress       string
+	SupaBaseUrl     string
+	SupaKey         string
+	IsProduction    bool
 }
 
 type Flags struct {

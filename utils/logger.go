@@ -13,6 +13,7 @@ func InitLogger(isDebugEnable bool) {
 	if !ok || (isProduction != "true" && isProduction != "false") {
 		isProduction = "false"
 	}
+
 	if isProduction == "true" && !isDebugEnable {
 		Logger = log.New(os.Stdout).WithColor().WithoutDebug().WithTimestamp()
 		return

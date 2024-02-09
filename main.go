@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
 )
 
 var (
