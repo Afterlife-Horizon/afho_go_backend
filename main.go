@@ -7,7 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"log"
 	"os/signal"
 	"syscall"
 	"time"
@@ -35,10 +34,7 @@ var (
 
 func main() {
 	flag.Parse()
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
+	_ = godotenv.Load()
 
 	utils.InitLogger(*debugFlag)
 	env = utils.LoadEnv(utils.Flags{
