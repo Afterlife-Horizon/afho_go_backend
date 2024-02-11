@@ -3,7 +3,7 @@ FROM debian:latest
 
 # Get the dependencies
 RUN set -x \
-  && apt-get update \ 
+  && apt-get update -y \ 
   && apt-get install ffmpeg -y
 
 COPY --from=golang:1.21-alpine /usr/local/go/ /usr/local/go/
