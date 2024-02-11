@@ -4,6 +4,8 @@ import (
 	"afho_backend/botClient"
 	"afho_backend/utils"
 	"net/http"
+	"os"
+	"path"
 
 	"github.com/gin-gonic/gin"
 	supa "github.com/nedpals/supabase-go"
@@ -89,7 +91,13 @@ func (handler *Handler) setMode() {
 func (handler *Handler) run() {
 	if handler.discordClient.Config.CertFile != "" && handler.discordClient.Config.KeyFile != "" {
 		utils.Logger.Info("Starting HTTPS server")
-		if err := handler.Server.ListenAndServeTLS(handler.discordClient.Config.CertFile, handler.discordClient.Config.KeyFile); err != nil && err != http.ErrServerClosed {
+		cwd, err := os.Getwd()
+		if err != nil {
+			utils.Logger.Fatal(err.Error())
+		}
+		certfile := path.Join(cwd, handler.discordClient.Config.CertFile)
+		keyfile := path.Join(cwd, handler.discordClient.Config.KeyFile)
+		if err := handler.Server.ListenAndServeTLS(certfile, keyfile); err != nil && err != http.ErrServerClosed {
 			utils.Logger.Fatal(err.Error())
 		}
 		return

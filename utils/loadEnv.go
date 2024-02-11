@@ -31,7 +31,7 @@ type Flags struct {
 func LoadEnv(flags Flags) Env {
 	isProduction, ok := os.LookupEnv("IS_PRODUCTION")
 	if !ok || (isProduction != "true" && isProduction != "false") {
-		Logger.Fatal("IS_PRODUCTION not found in environment variables, setting to false")
+		Logger.Warn("IS_PRODUCTION not found in environment variables, setting to false")
 		isProduction = "false"
 	}
 

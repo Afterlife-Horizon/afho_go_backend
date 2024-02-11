@@ -61,7 +61,6 @@ func (handler *Handler) generalFetch(c *gin.Context) {
 }
 
 func (handler *Handler) connectedMembers(c *gin.Context) {
-	utils.Logger.Debug("Recieved request for connected members")
 	handler.discordClient.CacheHandler.VoiceConnectedMembers.RLock()
 	var connectedMembers []connectedMembers = utils.Map[*discordgo.Member](handler.discordClient.CacheHandler.VoiceConnectedMembers, func(member *discordgo.Member) connectedMembers {
 		return connectedMembers{
@@ -71,7 +70,6 @@ func (handler *Handler) connectedMembers(c *gin.Context) {
 	}).Data
 	handler.discordClient.CacheHandler.VoiceConnectedMembers.RUnlock()
 
-	utils.Logger.Debug("Sending connected members", connectedMembers)
 	c.JSON(200, ConnectedMembersResponse{
 		Data: connectedMembers,
 	})
@@ -161,7 +159,7 @@ func (handler *Handler) postSkip(c *gin.Context) {
 
 func (handler *Handler) postDisconnect(c *gin.Context) {
 	handler.discordClient.MusicHandler.Stop(handler.discordClient)
-	botClient.HandleLeave(handler.discordClient.Session, handler.discordClient.Config.GuildID)
+	botClient.HandleLeave(handler.discordClient)
 	c.JSON(200, gin.H{})
 }
 
@@ -295,7 +293,6 @@ func (handler *Handler) postBresil(c *gin.Context) {
 	}
 
 	_, err := handler.discordClient.BrazilUser(mover.User, moved.User)
-
 	if err != nil {
 		c.AbortWithStatusJSON(500, gin.H{
 			"error": err.Error(),
