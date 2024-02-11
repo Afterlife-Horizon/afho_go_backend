@@ -95,8 +95,14 @@ func (handler *Handler) run() {
 		if err != nil {
 			utils.Logger.Fatal(err.Error())
 		}
-		certfile := path.Join(cwd, handler.discordClient.Config.CertFile)
-		keyfile := path.Join(cwd, handler.discordClient.Config.KeyFile)
+		certfile := handler.discordClient.Config.CertFile
+		if certfile[0:1] != "/" {
+			certfile = path.Join(cwd, handler.discordClient.Config.CertFile)
+		}
+		keyfile := handler.discordClient.Config.KeyFile
+		if keyfile[0:1] != "/" {
+			keyfile = path.Join(cwd, handler.discordClient.Config.KeyFile)
+		}
 		if err := handler.Server.ListenAndServeTLS(certfile, keyfile); err != nil && err != http.ErrServerClosed {
 			utils.Logger.Fatal(err.Error())
 		}
