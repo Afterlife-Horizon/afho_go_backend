@@ -33,10 +33,10 @@ func (c *CacheHandler) Init(client *BotClient) {
 
 func (c *CacheHandler) UpdateCache() {
 	utils.Logger.Debug("Updating Cache")
-	var client = c.discordBot
+	client := c.discordBot
 	c.updateGuildCache(client)
 
-	var wg = sync.WaitGroup{}
+	wg := sync.WaitGroup{}
 	wg.Add(6)
 	go c.updateConnectedMembers(client, &wg)
 	go c.updateAchievements(client, &wg)
@@ -50,7 +50,7 @@ func (c *CacheHandler) UpdateCache() {
 
 func (c *CacheHandler) updateGuildCache(client *BotClient) {
 	utils.Logger.Debug("Updating Guild Cache")
-	var wg = sync.WaitGroup{}
+	wg := sync.WaitGroup{}
 	wg.Add(3)
 	go c.cacheGuild(client, &wg)
 	go c.cacheMembers(client, &wg)
@@ -78,7 +78,7 @@ func (c *CacheHandler) cacheMembers(client *BotClient, wg *sync.WaitGroup) {
 		return
 	}
 
-	var membersCollection = utils.NewCollection[*discordgo.Member](members)
+	membersCollection := utils.NewCollection[*discordgo.Member](members)
 
 	c.MembersMutex.Lock()
 	c.Members = &membersCollection
@@ -94,7 +94,7 @@ func (c *CacheHandler) cacheChannels(client *BotClient, wg *sync.WaitGroup) {
 		return
 	}
 
-	var channelsCollection = utils.NewCollection[*discordgo.Channel](channels)
+	channelsCollection := utils.NewCollection[*discordgo.Channel](channels)
 
 	c.ChannelsMutex.Lock()
 	c.Channels = &channelsCollection
@@ -106,7 +106,7 @@ func (c *CacheHandler) cacheChannels(client *BotClient, wg *sync.WaitGroup) {
 
 func (c *CacheHandler) addConnectedMember(member *discordgo.Member) {
 	c.VoiceConnectedMembersMutex.Lock()
-	var index, err = c.VoiceConnectedMembers.GetIndex(func(m *discordgo.Member) bool { return m.User.ID == member.User.ID })
+	index, err := c.VoiceConnectedMembers.GetIndex(func(m *discordgo.Member) bool { return m.User.ID == member.User.ID })
 	if err != nil {
 		c.VoiceConnectedMembers.Insert(member)
 	} else {
@@ -125,11 +125,14 @@ func (c *CacheHandler) removeConnectedMember(member *discordgo.Member) {
 
 func (c *CacheHandler) updateConnectedMembers(client *BotClient, wg *sync.WaitGroup) {
 	utils.Logger.Debug("Updating Connected Members")
-	var voiceConnectedMembers = []*discordgo.Member{}
+	voiceConnectedMembers := []*discordgo.Member{}
 
 	c.MembersMutex.RLock()
 	for _, member := range c.Members.Data {
-		var _, err = client.Session.State.VoiceState(client.Config.GuildID, member.User.ID)
+		if member.User.ID == client.Session.State.User.ID {
+			continue
+		}
+		_, err := client.Session.State.VoiceState(client.Config.GuildID, member.User.ID)
 		if err != nil {
 			if err != discordgo.ErrStateNotFound {
 				utils.Logger.Error(err.Error())
@@ -140,7 +143,7 @@ func (c *CacheHandler) updateConnectedMembers(client *BotClient, wg *sync.WaitGr
 	}
 	c.MembersMutex.RUnlock()
 
-	var voiceConnectedMembersCollection = utils.NewCollection[*discordgo.Member](voiceConnectedMembers)
+	voiceConnectedMembersCollection := utils.NewCollection[*discordgo.Member](voiceConnectedMembers)
 	c.VoiceConnectedMembersMutex.Lock()
 	c.VoiceConnectedMembers = &voiceConnectedMembersCollection
 	c.VoiceConnectedMembersMutex.Unlock()
@@ -180,7 +183,7 @@ func (c *CacheHandler) UpdateDB() {
 func (c *CacheHandler) updateDBUsers() {
 	utils.Logger.Debug("Updating DB Users")
 	c.MembersMutex.RLock()
-	var stmt, err = c.discordBot.DB.Prepare("INSERT INTO Users (id, username, nickname, avatar, roles) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE username = ?, nickname = ?, avatar = ?, roles = ?")
+	stmt, err := c.discordBot.DB.Prepare("INSERT INTO Users (id, username, nickname, avatar, roles) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE username = ?, nickname = ?, avatar = ?, roles = ?")
 	defer stmt.Close()
 	if err != nil {
 		utils.Logger.Error(err.Error())

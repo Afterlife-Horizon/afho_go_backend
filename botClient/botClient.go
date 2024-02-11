@@ -64,6 +64,8 @@ func (b *BotClient) Init(env utils.Env, db *sql.DB) {
 		b.VoiceHandler = &voiceHandler
 		utils.Logger.Info("Initialised Voice Handler")
 
+		go musicHandler.HandleQueue(b)
+
 		commandsBuilder := CommandsBuilder{}
 		commandsBuilder.Init(b)
 		utils.Logger.Info("Initialised Commands Builder")

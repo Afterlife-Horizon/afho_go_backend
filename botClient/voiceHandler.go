@@ -12,6 +12,7 @@ import (
 type VoiceHandler struct {
 	client                *BotClient
 	userCurrentVoiceTimes map[string]time.Time
+	voiceConnection       *discordgo.VoiceConnection
 }
 
 func (v *VoiceHandler) Init(client *BotClient) {
@@ -35,6 +36,9 @@ func (v *VoiceHandler) UpdateDBTime() {
 	timeLock := sync.RWMutex{}
 
 	for userID := range v.userCurrentVoiceTimes {
+		if userID == v.client.Session.State.User.ID {
+			continue
+		}
 		wg.Add(1)
 		go v.updateUserDBTime(userID, &wg, &timeLock)
 	}
@@ -43,15 +47,15 @@ func (v *VoiceHandler) UpdateDBTime() {
 
 func (v *VoiceHandler) updateUserDBTime(userID string, wg *sync.WaitGroup, timeLock *sync.RWMutex) {
 	defer wg.Done()
-	var stmt, err = v.client.DB.Prepare("INSERT INTO Time_connected (user_id, time_spent) VALUES (?, ?) ON DUPLICATE KEY UPDATE time_spent = time_spent + ?")
-	defer stmt.Close()
+	stmt, err := v.client.DB.Prepare("INSERT INTO Time_connected (user_id, time_spent) VALUES (?, ?) ON DUPLICATE KEY UPDATE time_spent = time_spent + ?")
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		return
 	}
+	defer stmt.Close()
 
 	timeLock.RLock()
-	var currentActiveTime = time.Now().Unix() - v.userCurrentVoiceTimes[userID].Unix()
+	currentActiveTime := time.Now().Unix() - v.userCurrentVoiceTimes[userID].Unix()
 	timeLock.RUnlock()
 	utils.Logger.Debugf("Updating time for user %v, adding %vs", userID, currentActiveTime)
 	_, err = stmt.Exec(userID, currentActiveTime, currentActiveTime)
@@ -66,34 +70,51 @@ func (v *VoiceHandler) updateUserDBTime(userID string, wg *sync.WaitGroup, timeL
 }
 
 func (v *VoiceHandler) JoinVoiceChannel(channelID string) error {
-	var voiceState, err = v.client.Session.State.VoiceState(v.client.Config.GuildID, v.client.Session.State.User.ID)
+	voiceState, err := v.client.Session.State.VoiceState(v.client.Config.GuildID, v.client.Session.State.User.ID)
 	if err != nil || voiceState != nil {
 		return errors.New("cannot join channel")
 	}
 
-	v.client.Session.ChannelVoiceJoin(v.client.Config.GuildID, channelID, false, true)
+	v.voiceConnection, err = v.client.Session.ChannelVoiceJoin(v.client.Config.GuildID, channelID, false, true)
+	if err != nil {
+		utils.Logger.Error(err.Error())
+		return err
+	}
 	return nil
 }
 
-func HandleJoin(s *discordgo.Session, GuildID string, userID string) (string, error) {
+func HandleJoin(client *BotClient, GuildID string, userID string) (string, error) {
 	utils.Logger.Debug("Joining Voice Channel", GuildID, userID)
-	var voiceState, err = s.State.VoiceState(GuildID, userID)
+	voiceState, err := client.Session.State.VoiceState(GuildID, userID)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		return "Could not join voice channel!", err
 	}
 
-	s.ChannelVoiceJoin(voiceState.GuildID, voiceState.ChannelID, false, true)
+	if client.VoiceHandler.voiceConnection != nil {
+		return "", errors.New("already have a voice connection")
+	}
+
+	voiceconnection, err := client.Session.ChannelVoiceJoin(voiceState.GuildID, voiceState.ChannelID, false, true)
+	if err != nil {
+		utils.Logger.Error(err.Error())
+		return "Could not join voice channel!", err
+	}
+
+	client.VoiceHandler.voiceConnection = voiceconnection
+
 	return "Joined Voice Channel", nil
 }
 
-func HandleLeave(s *discordgo.Session, GuildID string) string {
-	var voiceState = s.VoiceConnections[GuildID]
-
-	if voiceState == nil {
-		return "Not in a voice channel!"
+func HandleLeave(client *BotClient) string {
+	if client.VoiceHandler.voiceConnection == nil {
+		return "Not in a Channel"
+	}
+	err := client.VoiceHandler.voiceConnection.Disconnect()
+	if err != nil {
+		utils.Logger.Error(err.Error())
 	}
 
-	voiceState.Disconnect()
+	client.VoiceHandler.voiceConnection = nil
 	return "Left the channel!"
 }

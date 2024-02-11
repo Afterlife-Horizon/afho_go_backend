@@ -8,27 +8,31 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func JoinHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	utils.Logger.Debug("Recieved join command")
-	var returnValue, error = HandleJoin(s, i.GuildID, i.Member.User.ID)
-	if error != nil {
-		utils.Logger.Error(error.Error())
-	}
+func JoinHandler(client *BotClient) func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		utils.Logger.Debug("Recieved join command")
+		returnValue, error := HandleJoin(client, i.GuildID, i.Member.User.ID)
+		if error != nil {
+			utils.Logger.Error(error.Error())
+		}
 
-	utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-		Content: returnValue,
-	})
-	utils.Logger.Debug("Replied to join command with: ", returnValue)
+		utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
+			Content: returnValue,
+		})
+		utils.Logger.Debug("Replied to join command with: ", returnValue)
+	}
 }
 
-func leaveHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	utils.Logger.Debug("Recieved leave command")
-	var returnValue = HandleLeave(s, i.GuildID)
+func leaveHandler(client *BotClient) func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		utils.Logger.Debug("Recieved leave command")
+		returnValue := HandleLeave(client)
 
-	utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
-		Content: returnValue,
-	})
-	utils.Logger.Debug("Replied to leave command with: ", returnValue)
+		utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
+			Content: returnValue,
+		})
+		utils.Logger.Debug("Replied to leave command with: ", returnValue)
+	}
 }
 
 func playHandler(client *BotClient) func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -41,7 +45,7 @@ func playHandler(client *BotClient) func(s *discordgo.Session, i *discordgo.Inte
 			})
 			return
 		}
-		var input = i.ApplicationCommandData().Options[0].StringValue()
+		input := i.ApplicationCommandData().Options[0].StringValue()
 
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -52,7 +56,7 @@ func playHandler(client *BotClient) func(s *discordgo.Session, i *discordgo.Inte
 
 		utils.Logger.Debug("Searching for ", input)
 
-		var returnValue, _ = client.MusicHandler.Add(client, input, i.Member.User.Username, i.Member.User.ID, false)
+		returnValue, _ := client.MusicHandler.Add(client, input, i.Member.User.Username, i.Member.User.ID, false)
 		s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 			Content: &returnValue,
 		})
@@ -78,7 +82,7 @@ func addOnTopHandler(client *BotClient) func(s *discordgo.Session, i *discordgo.
 			return
 		}
 
-		var input = i.ApplicationCommandData().Options[0].StringValue()
+		input := i.ApplicationCommandData().Options[0].StringValue()
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
@@ -86,7 +90,7 @@ func addOnTopHandler(client *BotClient) func(s *discordgo.Session, i *discordgo.
 			},
 		})
 
-		var returnValue, _ = client.MusicHandler.AddOnTop(client, input, i.Member.User.Username, i.Member.User.ID)
+		returnValue, _ := client.MusicHandler.AddOnTop(client, input, i.Member.User.Username, i.Member.User.ID)
 		s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 			Content: &returnValue,
 		})
@@ -129,9 +133,9 @@ func seekHandler(client *BotClient) func(s *discordgo.Session, i *discordgo.Inte
 			})
 			return
 		}
-		var input = i.ApplicationCommandData().Options[0].IntValue()
+		input := i.ApplicationCommandData().Options[0].IntValue()
 
-		var newPosition = time.Duration(input) * time.Second
+		newPosition := time.Duration(input) * time.Second
 
 		client.MusicHandler.Seek(client, newPosition)
 
@@ -160,9 +164,9 @@ func bresilHandler(client *BotClient) func(s *discordgo.Session, i *discordgo.In
 			})
 			return
 		}
-		var input = i.ApplicationCommandData().Options[0].UserValue(s)
+		input := i.ApplicationCommandData().Options[0].UserValue(s)
 
-		var output, _ = client.BrazilUser(i.Member.User, input)
+		output, _ := client.BrazilUser(i.Member.User, input)
 
 		utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
 			Content: output,

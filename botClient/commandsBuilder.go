@@ -175,8 +175,8 @@ func (builder *CommandsBuilder) Init(client *BotClient) {
 func (builder *CommandsBuilder) initHandlers(client *BotClient) {
 	utils.Logger.Debug("Initialising Command Handlers")
 	builder.Handlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"join":         JoinHandler,
-		"leave":        leaveHandler,
+		"join":         JoinHandler(client),
+		"leave":        leaveHandler(client),
 		"play":         playHandler(client),
 		"addontop":     addOnTopHandler(client),
 		"pause":        pauseHandler(client),
