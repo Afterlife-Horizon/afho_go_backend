@@ -184,11 +184,11 @@ func (c *CacheHandler) updateDBUsers() {
 	utils.Logger.Debug("Updating DB Users")
 	c.MembersMutex.RLock()
 	stmt, err := c.discordBot.DB.Prepare("INSERT INTO Users (id, username, nickname, avatar, roles) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE username = ?, nickname = ?, avatar = ?, roles = ?")
-	defer stmt.Close()
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		return
 	}
+	defer stmt.Close()
 
 	for _, member := range c.Members.Data {
 		var roles string = ""
