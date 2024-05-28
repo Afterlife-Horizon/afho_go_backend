@@ -64,7 +64,7 @@ func (handler *Handler) initRouter() {
 	musicGroup.POST("/playfirst", handler.checkUserMiddleware, handler.postPlayFirst)
 	musicGroup.POST("/shuffle", handler.checkUserMiddleware, handler.postSuffle)
 	musicGroup.POST("/addFav", handler.checkUserMiddleware, handler.postAddFav)
-	musicGroup.DELETE("/delFav", handler.checkUserMiddleware, handler.postRemoveFav)
+	musicGroup.DELETE("/delFav", handler.checkUserMiddleware, handler.deleteRemoveFav)
 
 	// --- ADMIN ---
 	musicGroup.POST("/remove", handler.checkUserMiddleware, handler.checkAdminMiddleware, handler.postRemove)

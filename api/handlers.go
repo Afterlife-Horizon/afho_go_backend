@@ -327,7 +327,7 @@ func (handler *Handler) postAddFav(c *gin.Context) {
 	c.JSON(200, gin.H{})
 }
 
-func (handler *Handler) postRemoveFav(c *gin.Context) {
+func (handler *Handler) deleteRemoveFav(c *gin.Context) {
 	user := c.MustGet("user").(*supa.User)
 	body := struct {
 		Id string `json:"id"`
