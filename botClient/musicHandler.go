@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"regexp"
 	"sync"
 	"time"
 
@@ -59,7 +58,7 @@ func NewQueue() *Queue {
 	utils.Logger.Debug("Creating new Queue")
 	return &Queue{
 		Playing: false,
-		Tracks:  utils.NewCollection[Track]([]Track{}),
+		Tracks:  utils.NewCollection([]Track{}),
 	}
 }
 
@@ -116,13 +115,8 @@ func (handler *MusicHandler) Add(client *BotClient, input string, requester stri
 		}
 	}
 
-	// var youtubRegex, _ = regexp.Compile(`/https?\:\/\/(?:www\.youtube(?:\-nocookie)?\.com\/|m\.youtube\.com\/|youtube\.com\/)?(?:ytscreeningroom\?vi?=|youtu\.be\/|vi?\/|user\/.+\/u\/\w{1,2}\/|embed\/|watch\?(?:.*\&)?vi?=|\&vi?=|\?(?:.*\&)?vi?=)([^#\&\?\n\/<>\"']*)/`)
-	songRegex, _ := regexp.Compile(`https?:\/\/(www.youtube.com|youtube.com)\/watch\?v=(?P<videoID>[^#\&\?]*)(&list=(?:[^#\&\?]*))?`)
-	playlistRegex, _ := regexp.Compile(`https?:\/\/(?:www.youtube.com|youtube.com)\/(?:playlist\?list=(?P<listID>[^#\&\?]*)|watch\?v=(?:[^#\&\?]*)&list=(?P<listID2>[^#\&\?]*))`)
-
-	// var isYoutube = youtubRegex.MatchString(input)
-	isYoutubeSong := songRegex.MatchString(input)
-	isYoutubePlaylist := playlistRegex.MatchString(input)
+	isYoutubeSong := utils.SongRegex.MatchString(input)
+	isYoutubePlaylist := utils.PlaylistRegex.MatchString(input)
 
 	utils.Logger.Debug("Checking input type", "isYoutubeSong", isYoutubeSong, "isYoutubePlaylist", isYoutubePlaylist)
 
@@ -131,8 +125,8 @@ func (handler *MusicHandler) Add(client *BotClient, input string, requester stri
 	// extract playlist id from url
 	var playlistID string
 	if isYoutubePlaylist {
-		tmp := playlistRegex.FindStringSubmatch(input)
-		for i, name := range playlistRegex.SubexpNames() {
+		tmp := utils.PlaylistRegex.FindStringSubmatch(input)
+		for i, name := range utils.PlaylistRegex.SubexpNames() {
 			if i != 0 && name != "" {
 				if tmp[i] == "" {
 					continue

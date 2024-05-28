@@ -11,7 +11,6 @@ import (
 )
 
 type BotClient struct {
-	Config          utils.Env
 	ReadyChannel    chan bool
 	DB              *sql.DB
 	Session         *discordgo.Session
@@ -19,6 +18,7 @@ type BotClient struct {
 	MusicHandler    *MusicHandler
 	VoiceHandler    *VoiceHandler
 	CommandsBuilder *CommandsBuilder
+	Config          utils.Env
 	Ready           bool
 }
 

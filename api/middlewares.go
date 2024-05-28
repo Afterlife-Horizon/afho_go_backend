@@ -45,7 +45,7 @@ func (handler *Handler) checkUserMiddleware(c *gin.Context) {
 
 func (handler *Handler) checkAdminMiddleware(c *gin.Context) {
 	user := c.MustGet("user").(*supa.User)
-	admins := GetAdmins(handler.discordClient)
+	admins := GetAdmins(handler.discordClient.CacheHandler.Members, handler.discordClient.Config.AdminRoleID)
 
 	var isAdmin bool
 	for _, admin := range admins {

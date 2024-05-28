@@ -110,7 +110,7 @@ func (collection *Collection[T]) Shuffle(start int, end int, shuffleCount int) {
 			if j == end {
 				break
 			}
-			var randomIndex = rand.Intn(end-start) + start
+			randomIndex := rand.Intn(end-start) + start
 			collection.Lock()
 			collection.Data[randomIndex], collection.Data[j] = collection.Data[j], collection.Data[randomIndex]
 			collection.Unlock()
@@ -119,7 +119,7 @@ func (collection *Collection[T]) Shuffle(start int, end int, shuffleCount int) {
 }
 
 func (collection *Collection[T]) ToString() string {
-	var result string = "\n--------------------------\n"
+	result := "\n--------------------------\n"
 	collection.RLock()
 	for index, item := range collection.Data {
 		result += fmt.Sprintf("index: %d, value: %v\n", index, item)
@@ -130,7 +130,7 @@ func (collection *Collection[T]) ToString() string {
 }
 
 func Map[T, U any](collection *Collection[T], fn func(T) U) *Collection[U] {
-	var result = NewCollection[U](make([]U, len(collection.Data)))
+	result := NewCollection(make([]U, len(collection.Data)))
 
 	collection.RLock()
 	for index, item := range collection.Data {
@@ -141,7 +141,7 @@ func Map[T, U any](collection *Collection[T], fn func(T) U) *Collection[U] {
 }
 
 func (collection *Collection[T]) Filter(fn func(T) bool) *Collection[T] {
-	var result = NewCollection[T](make([]T, 0))
+	result := NewCollection(make([]T, 0))
 
 	collection.RLock()
 	for _, item := range collection.Data {

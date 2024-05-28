@@ -7,8 +7,8 @@ import (
 )
 
 type CommandsBuilder struct {
-	Commands []*discordgo.ApplicationCommand
 	Handlers map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)
+	Commands []*discordgo.ApplicationCommand
 }
 
 func (builder *CommandsBuilder) AddCommand(command *discordgo.ApplicationCommand) error {
@@ -184,8 +184,8 @@ func (builder *CommandsBuilder) initHandlers(client *BotClient) {
 		"skip":         skipHandler(client),
 		"seek":         seekHandler(client),
 		"bresil":       bresilHandler(client),
-		"addbirthday":  addbirthdayHandler(client),
-		"addchatsound": addChatSoundHandler(client),
+		"addbirthday":  addbirthdayHandler(),
+		"addchatsound": addChatSoundHandler(),
 		"shuffle":      shuffleHandler(client),
 	}
 }

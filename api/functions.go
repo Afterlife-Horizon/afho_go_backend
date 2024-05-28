@@ -1,21 +1,20 @@
 package api
 
 import (
-	"afho_backend/botClient"
 	"afho_backend/utils"
 	"database/sql"
 	"errors"
 	"math"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/kkdai/youtube/v2"
 )
 
-func GetUserAvatar(discordClient *botClient.BotClient, userID string) string {
-	member, err4 := discordClient.CacheHandler.Members.Get(func(t *discordgo.Member) bool {
+func GetUserAvatar(members *utils.Collection[*discordgo.Member], userID string) string {
+	member, err4 := members.Get(func(t *discordgo.Member) bool {
 		return t.User.ID == userID
 	})
 	if err4 != nil {
@@ -38,11 +37,11 @@ func XptoLvl(xp int) float64 {
 	return math.Floor(math.Pow(float64(xp)/exp, 1/exp)) + 1
 }
 
-func GetAdmins(discordClient *botClient.BotClient) []string {
+func GetAdmins(members *utils.Collection[*discordgo.Member], adminRoleID string) []string {
 	var admins []string
-	for _, member := range discordClient.CacheHandler.Members.Data {
+	for _, member := range members.Data {
 		for _, role := range member.Roles {
-			if role == discordClient.Config.AdminRoleID {
+			if role == adminRoleID {
 				admins = append(admins, member.User.Username)
 				break
 			}
@@ -52,7 +51,7 @@ func GetAdmins(discordClient *botClient.BotClient) []string {
 	return admins
 }
 
-func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
+func GetLevelsDb(db *sql.DB, members *utils.Collection[*discordgo.Member]) []Level {
 	statement, err := db.Prepare("SELECT * FROM Levels")
 	if err != nil {
 		utils.Logger.Error(err.Error())
@@ -77,7 +76,7 @@ func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
 
 		tmp.Lvl = int(XptoLvl(tmp.Xp))
 
-		member, err4 := discordClient.CacheHandler.Members.Get(func(t *discordgo.Member) bool {
+		member, err4 := members.Get(func(t *discordgo.Member) bool {
 			return t.User.ID == tmp.User.User_id
 		})
 		if err4 != nil {
@@ -86,7 +85,7 @@ func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
 		}
 
 		tmp.User.Username = member.User.Username
-		tmp.User.DisplayAvatarURL = GetUserAvatar(discordClient, member.User.ID)
+		tmp.User.DisplayAvatarURL = GetUserAvatar(members, member.User.ID)
 
 		result = append(result, tmp)
 	}
@@ -94,7 +93,7 @@ func GetLevelsDb(db *sql.DB, discordClient *botClient.BotClient) []Level {
 	return result
 }
 
-func getBrasilBoardDB(db *sql.DB, discordClient *botClient.BotClient) []BrasilBoard {
+func getBrasilBoardDB(db *sql.DB, members *utils.Collection[*discordgo.Member]) []BrasilBoard {
 	statement, err := db.Prepare("SELECT * FROM Bresil_count")
 	if err != nil {
 		utils.Logger.Error(err.Error())
@@ -117,7 +116,7 @@ func getBrasilBoardDB(db *sql.DB, discordClient *botClient.BotClient) []BrasilBo
 			continue
 		}
 
-		member, err4 := discordClient.CacheHandler.Members.Get(func(t *discordgo.Member) bool {
+		member, err4 := members.Get(func(t *discordgo.Member) bool {
 			return t.User.ID == tmp.User.User_id
 		})
 		if err4 != nil {
@@ -126,7 +125,7 @@ func getBrasilBoardDB(db *sql.DB, discordClient *botClient.BotClient) []BrasilBo
 		}
 
 		tmp.User.Username = member.User.Username
-		tmp.User.DisplayAvatarURL = GetUserAvatar(discordClient, member.User.ID)
+		tmp.User.DisplayAvatarURL = GetUserAvatar(members, member.User.ID)
 
 		result = append(result, tmp)
 	}
@@ -134,7 +133,7 @@ func getBrasilBoardDB(db *sql.DB, discordClient *botClient.BotClient) []BrasilBo
 	return result
 }
 
-func GetTimesDB(discordClient *botClient.BotClient, db *sql.DB) []Time {
+func GetTimesDB(members *utils.Collection[*discordgo.Member], db *sql.DB) []Time {
 	statement, err := db.Prepare("SELECT * FROM Time_connected")
 	if err != nil {
 		utils.Logger.Error(err.Error())
@@ -157,7 +156,7 @@ func GetTimesDB(discordClient *botClient.BotClient, db *sql.DB) []Time {
 			continue
 		}
 
-		member, err4 := discordClient.CacheHandler.Members.Get(func(t *discordgo.Member) bool {
+		member, err4 := members.Get(func(t *discordgo.Member) bool {
 			return t.User.ID == tmp.User.User_id
 		})
 		if err4 != nil {
@@ -166,7 +165,7 @@ func GetTimesDB(discordClient *botClient.BotClient, db *sql.DB) []Time {
 		}
 
 		tmp.User.Username = member.User.Username
-		tmp.User.DisplayAvatarURL = GetUserAvatar(discordClient, member.User.ID)
+		tmp.User.DisplayAvatarURL = GetUserAvatar(members, member.User.ID)
 
 		result = append(result, tmp)
 	}
@@ -174,7 +173,7 @@ func GetTimesDB(discordClient *botClient.BotClient, db *sql.DB) []Time {
 	return result
 }
 
-func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchievement {
+func GetAchievementsDB(members *utils.Collection[*discordgo.Member], db *sql.DB) []APIAchievement {
 	statement, err := db.Prepare("SELECT user_id, achievement_name, Achievement_get.type, requirements FROM Achievement_get, Achievements WHERE Achievement_get.achievement_name = Achievements.name")
 	if err != nil {
 		utils.Logger.Error(err.Error())
@@ -187,7 +186,7 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 		utils.Logger.Error(err2.Error())
 	}
 
-	tmpAll := make(map[string]APIAchievement, len(discordClient.CacheHandler.Members.Data))
+	tmpAll := make(map[string]APIAchievement, len(members.Data))
 
 	var result []APIAchievement = make([]APIAchievement, 0, 100)
 	var counter int8 = 0
@@ -200,7 +199,7 @@ func GetAchievementsDB(discordClient *botClient.BotClient, db *sql.DB) []APIAchi
 			continue
 		}
 
-		member, err4 := discordClient.CacheHandler.Members.Get(func(t *discordgo.Member) bool {
+		member, err4 := members.Get(func(t *discordgo.Member) bool {
 			return t.User.ID == userId
 		})
 		if err4 != nil {
@@ -268,12 +267,9 @@ func GetFavsDB(db *sql.DB, userId string) ([]Fav, error) {
 	return result, nil
 }
 
-func AddFavDB(discordClient *botClient.BotClient, db *sql.DB, userId string, url string) (Fav, error) {
-	songRegex, _ := regexp.Compile(`https?:\/\/(www.youtube.com|youtube.com)\/watch\?v=(?P<videoID>[^#\&\?]*)(&list=(?:[^#\&\?]*))?`)
-	playlistRegex, _ := regexp.Compile(`https?:\/\/(?:www.youtube.com|youtube.com)\/(?:playlist\?list=(?P<listID>[^#\&\?]*)|watch\?v=(?:[^#\&\?]*)&list=(?P<listID2>[^#\&\?]*))`)
-
-	isYoutubeSong := songRegex.MatchString(url)
-	isYoutubePlaylist := playlistRegex.MatchString(url)
+func AddFavDB(youtubeClient *youtube.Client, db *sql.DB, userId string, url string) (Fav, error) {
+	isYoutubeSong := utils.SongRegex.MatchString(url)
+	isYoutubePlaylist := utils.PlaylistRegex.MatchString(url)
 
 	if !isYoutubeSong && !isYoutubePlaylist {
 		return Fav{}, errors.New("invalid url")
@@ -284,8 +280,8 @@ func AddFavDB(discordClient *botClient.BotClient, db *sql.DB, userId string, url
 	if isYoutubeSong {
 		var videoId string
 		if isYoutubePlaylist {
-			tmp := songRegex.FindStringSubmatch(url)
-			for i, name := range songRegex.SubexpNames() {
+			tmp := utils.SongRegex.FindStringSubmatch(url)
+			for i, name := range utils.SongRegex.SubexpNames() {
 				if i != 0 && name != "" {
 					if tmp[i] == "" {
 						continue
@@ -298,9 +294,9 @@ func AddFavDB(discordClient *botClient.BotClient, db *sql.DB, userId string, url
 
 		utils.Logger.Debug(videoURL)
 
-		video, err2 = addFavoriteDB(discordClient, db, videoURL)
+		video, err2 = addFavoriteDB(youtubeClient, db, videoURL)
 	} else {
-		video, err2 = addFavoritePlaylistDB(discordClient, db, url)
+		video, err2 = addFavoritePlaylistDB(youtubeClient, db, url)
 	}
 	if err2 != nil {
 		return Fav{}, err2
@@ -329,7 +325,7 @@ func AddFavDB(discordClient *botClient.BotClient, db *sql.DB, userId string, url
 	}, nil
 }
 
-func addFavoritePlaylistDB(discordClient *botClient.BotClient, db *sql.DB, url string) (Fav, error) {
+func addFavoritePlaylistDB(youtubeClient *youtube.Client, db *sql.DB, url string) (Fav, error) {
 	statement2, err := db.Prepare("INSERT INTO Videos (id, url, name, thumbnail, type) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE id = id")
 	if err != nil {
 		utils.Logger.Error(err.Error())
@@ -337,7 +333,7 @@ func addFavoritePlaylistDB(discordClient *botClient.BotClient, db *sql.DB, url s
 	}
 	defer statement2.Close()
 
-	playlist, err2 := discordClient.MusicHandler.YoutubeClient.GetPlaylist(url)
+	playlist, err2 := youtubeClient.GetPlaylist(url)
 	if err2 != nil {
 		utils.Logger.Error(err2.Error())
 		return Fav{}, errors.New("internal error")
@@ -358,7 +354,7 @@ func addFavoritePlaylistDB(discordClient *botClient.BotClient, db *sql.DB, url s
 	}, nil
 }
 
-func addFavoriteDB(discordClient *botClient.BotClient, db *sql.DB, url string) (Fav, error) {
+func addFavoriteDB(youtubeClient *youtube.Client, db *sql.DB, url string) (Fav, error) {
 	statement2, err := db.Prepare("INSERT INTO Videos (id, url, name, thumbnail, type) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE id = id")
 	if err != nil {
 		utils.Logger.Error(err.Error())
@@ -366,7 +362,7 @@ func addFavoriteDB(discordClient *botClient.BotClient, db *sql.DB, url string) (
 	}
 	defer statement2.Close()
 
-	video, err2 := discordClient.MusicHandler.YoutubeClient.GetVideo(url)
+	video, err2 := youtubeClient.GetVideo(url)
 	if err2 != nil {
 		utils.Logger.Error(err2.Error())
 		return Fav{}, errors.New("internal error")

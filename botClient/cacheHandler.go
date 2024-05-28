@@ -78,7 +78,7 @@ func (c *CacheHandler) cacheMembers(client *BotClient, wg *sync.WaitGroup) {
 		return
 	}
 
-	membersCollection := utils.NewCollection[*discordgo.Member](members)
+	membersCollection := utils.NewCollection(members)
 
 	c.MembersMutex.Lock()
 	c.Members = &membersCollection
@@ -94,7 +94,7 @@ func (c *CacheHandler) cacheChannels(client *BotClient, wg *sync.WaitGroup) {
 		return
 	}
 
-	channelsCollection := utils.NewCollection[*discordgo.Channel](channels)
+	channelsCollection := utils.NewCollection(channels)
 
 	c.ChannelsMutex.Lock()
 	c.Channels = &channelsCollection
@@ -143,7 +143,7 @@ func (c *CacheHandler) updateConnectedMembers(client *BotClient, wg *sync.WaitGr
 	}
 	c.MembersMutex.RUnlock()
 
-	voiceConnectedMembersCollection := utils.NewCollection[*discordgo.Member](voiceConnectedMembers)
+	voiceConnectedMembersCollection := utils.NewCollection(voiceConnectedMembers)
 	c.VoiceConnectedMembersMutex.Lock()
 	c.VoiceConnectedMembers = &voiceConnectedMembersCollection
 	c.VoiceConnectedMembersMutex.Unlock()
@@ -191,7 +191,7 @@ func (c *CacheHandler) updateDBUsers() {
 	defer stmt.Close()
 
 	for _, member := range c.Members.Data {
-		var roles string = ""
+		roles := ""
 		for _, role := range member.Roles {
 			roles += role + ","
 		}

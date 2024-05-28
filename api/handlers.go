@@ -13,7 +13,7 @@ import (
 )
 
 func (handler *Handler) getLevels(c *gin.Context) {
-	var levels []Level = GetLevelsDb(handler.discordClient.DB, handler.discordClient)
+	var levels []Level = GetLevelsDb(handler.discordClient.DB, handler.discordClient.CacheHandler.Members)
 	sort.Slice(levels, func(i, j int) bool {
 		return levels[i].Xp > levels[j].Xp
 	})
@@ -27,7 +27,7 @@ func (handler *Handler) generalFetch(c *gin.Context) {
 	handler.discordClient.MusicHandler.Queue.RLock()
 	if handler.discordClient.MusicHandler.Queue != nil && handler.discordClient.MusicHandler.Queue.Playing {
 		prog = handler.discordClient.MusicHandler.Queue.SeekPosition + handler.discordClient.MusicHandler.Stream.PlaybackPosition()
-		tracks = utils.Map[botClient.Track, Track](&handler.discordClient.MusicHandler.Queue.Tracks, func(track botClient.Track) Track {
+		tracks = utils.Map(&handler.discordClient.MusicHandler.Queue.Tracks, func(track botClient.Track) Track {
 			return Track{
 				Id:                track.ID,
 				Title:             track.Title,
@@ -47,7 +47,7 @@ func (handler *Handler) generalFetch(c *gin.Context) {
 	handler.discordClient.MusicHandler.Queue.RUnlock()
 
 	c.JSON(200, FetchResults{
-		Admins:       GetAdmins(handler.discordClient),
+		Admins:       GetAdmins(handler.discordClient.CacheHandler.Members, handler.discordClient.Config.AdminRoleID),
 		Formatedprog: utils.FormatTime(prog),
 		Prog:         int(prog.Seconds()),
 		Queue: []Queue{
@@ -76,7 +76,7 @@ func (handler *Handler) connectedMembers(c *gin.Context) {
 }
 
 func (handler *Handler) getBrasilBoard(c *gin.Context) {
-	var brasilBoard []BrasilBoard = getBrasilBoardDB(handler.discordClient.DB, handler.discordClient)
+	var brasilBoard []BrasilBoard = getBrasilBoardDB(handler.discordClient.DB, handler.discordClient.CacheHandler.Members)
 
 	sort.Slice(brasilBoard, func(i, j int) bool {
 		return brasilBoard[i].BresilReceived > brasilBoard[j].BresilReceived
@@ -86,7 +86,7 @@ func (handler *Handler) getBrasilBoard(c *gin.Context) {
 }
 
 func (handler *Handler) getTimes(c *gin.Context) {
-	var times []Time = GetTimesDB(handler.discordClient, handler.discordClient.DB)
+	var times []Time = GetTimesDB(handler.discordClient.CacheHandler.Members, handler.discordClient.DB)
 
 	sort.Slice(times, func(i, j int) bool {
 		return times[i].TimeSpent > times[j].TimeSpent
@@ -96,7 +96,7 @@ func (handler *Handler) getTimes(c *gin.Context) {
 }
 
 func (handler *Handler) getAchievements(c *gin.Context) {
-	var achievements []APIAchievement = GetAchievementsDB(handler.discordClient, handler.discordClient.DB)
+	var achievements []APIAchievement = GetAchievementsDB(handler.discordClient.CacheHandler.Members, handler.discordClient.DB)
 	c.JSON(200, achievements)
 }
 
@@ -316,7 +316,7 @@ func (handler *Handler) postAddFav(c *gin.Context) {
 		return
 	}
 
-	_, err := AddFavDB(handler.discordClient, handler.discordClient.DB, user.UserMetadata["provider_id"].(string), body.Url)
+	_, err := AddFavDB(handler.discordClient.MusicHandler.YoutubeClient, handler.discordClient.DB, user.UserMetadata["provider_id"].(string), body.Url)
 	if err != nil {
 		c.AbortWithStatusJSON(500, gin.H{
 			"error": err.Error(),

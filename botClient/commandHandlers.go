@@ -174,7 +174,7 @@ func bresilHandler(client *BotClient) func(s *discordgo.Session, i *discordgo.In
 	}
 }
 
-func addbirthdayHandler(client *BotClient) func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func addbirthdayHandler() func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -185,7 +185,7 @@ func addbirthdayHandler(client *BotClient) func(s *discordgo.Session, i *discord
 	}
 }
 
-func addChatSoundHandler(client *BotClient) func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func addChatSoundHandler() func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
