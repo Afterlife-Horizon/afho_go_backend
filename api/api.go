@@ -37,8 +37,9 @@ func (handler *Handler) Init(discordClient *botClient.BotClient) {
 	}
 
 	handler.router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowAllOrigins: true,
 		AllowCredentials: true,
+		AllowMethods: []string{"GET,OPTIONS,PATCH,DELETE,POST,PUT"},
 	}))
 
 	utils.Logger.Debug("API Starting...")
