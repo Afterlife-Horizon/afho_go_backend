@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	supa "github.com/nedpals/supabase-go"
 )
@@ -34,6 +35,11 @@ func (handler *Handler) Init(discordClient *botClient.BotClient) {
 		Addr:    ":4000",
 		Handler: handler.router,
 	}
+
+	handler.router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowCredentials: true,
+	}))
 
 	utils.Logger.Debug("API Starting...")
 	handler.run()
