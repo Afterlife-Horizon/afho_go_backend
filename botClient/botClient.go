@@ -140,7 +140,6 @@ func (b *BotClient) BrazilUser(sender *discordgo.User, user *discordgo.User) (st
 	b.Session.GuildMemberMove(b.Config.GuildID, user.ID, &b.Config.BrasilChannelID)
 	b.Session.ChannelMessageSend(b.Config.BaseChannelID, fmt.Sprintf("%v sent %v to brasil!", sender.Username, user.Username))
 
-	// TODO: modify database record
 	bresilUser(b.DB, user, bresil_recieved)
 	bresilUser(b.DB, sender, bresil_sent)
 

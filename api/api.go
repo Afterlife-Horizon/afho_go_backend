@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	supa "github.com/nedpals/supabase-go"
 )
@@ -34,6 +35,11 @@ func (handler *Handler) Init(discordClient *botClient.BotClient) {
 		Addr:    ":4000",
 		Handler: handler.router,
 	}
+
+	utils.Logger.Debug("Setting up cors")
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{"https://music.afterlifehorizon.net"}
+	handler.router.Use(cors.New(corsConfig))
 
 	utils.Logger.Debug("API Starting...")
 	handler.run()
