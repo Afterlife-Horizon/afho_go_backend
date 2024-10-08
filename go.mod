@@ -4,6 +4,7 @@ go 1.21.6
 
 require (
 	github.com/bwmarrin/discordgo v0.27.1
+	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/joho/godotenv v1.5.1
@@ -17,7 +18,6 @@ require (
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
-	github.com/gin-contrib/cors v1.7.2 // indirect
 	github.com/smartystreets/goconvey v1.8.1 // indirect
 	golang.org/x/term v0.19.0 // indirect
 )
