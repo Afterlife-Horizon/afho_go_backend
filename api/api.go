@@ -32,21 +32,17 @@ func (handler *Handler) Init(discordClient *botClient.BotClient) {
 
 	handler.initRouter()
 
-	handler.router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*.afterlifehorizon.net"},
-		AllowCredentials: true,
-		AllowMethods:     []string{"GET", "OPTIONS", "PATCH", "DELETE", "POST", "PUT"},
-	}))
+	utils.Logger.Debug("Setting up cors")
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{"https://music.afterlifehorizon.net"}
+	handler.router.Use(cors.New(corsConfig))
 
 	handler.Server = &http.Server{
 		Addr:    ":4000",
 		Handler: handler.router,
 	}
 
-	utils.Logger.Debug("Setting up cors")
-	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"https://music.afterlifehorizon.net"}
-	handler.router.Use(cors.New(corsConfig))
+	
 
 	utils.Logger.Debug("API Starting...")
 	handler.run()
