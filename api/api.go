@@ -31,6 +31,13 @@ func (handler *Handler) Init(discordClient *botClient.BotClient) {
 	<-discordClient.ReadyChannel // Wait for bot to be ready
 
 	handler.initRouter()
+
+	handler.router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*.afterlifehorizon.net"},
+		AllowCredentials: true,
+		AllowMethods:     []string{"GET", "OPTIONS", "PATCH", "DELETE", "POST", "PUT"},
+	}))
+
 	handler.Server = &http.Server{
 		Addr:    ":4000",
 		Handler: handler.router,
