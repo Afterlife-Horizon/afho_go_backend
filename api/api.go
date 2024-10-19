@@ -34,7 +34,7 @@ func (handler *Handler) Init(discordClient *botClient.BotClient) {
 
 	utils.Logger.Debug("Setting up cors")
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"*.afterlifehorizon.net"}
+	corsConfig.AllowOrigins = []string{"https://music.afterlifehorizon.net"}
 	handler.router.Use(cors.New(corsConfig))
 
 	handler.Server = &http.Server{
