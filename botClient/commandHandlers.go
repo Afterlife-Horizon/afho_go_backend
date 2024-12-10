@@ -67,7 +67,7 @@ func playHandler(client *BotClient) func(s *discordgo.Session, i *discordgo.Inte
 func addOnTopHandler(client *BotClient) func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		utils.Logger.Debug("Recieved addontop command")
-		if client.MusicHandler.Queue.Tracks.Data == nil || len(client.MusicHandler.Queue.Tracks.Data) == 0 {
+		if len(client.MusicHandler.Queue.Tracks.Data) == 0 {
 			utils.Logger.Debug("No queue to add to")
 			utils.InteractionReply(s, i, &discordgo.InteractionResponseData{
 				Content: "Please use /play instead",

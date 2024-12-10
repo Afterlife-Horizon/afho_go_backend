@@ -356,7 +356,6 @@ func (handler *MusicHandler) Move(client *BotClient, from int, to int) {
 
 // ---------------------------- Queue Handlers ----------------------------
 func (handler *MusicHandler) DCA(client *BotClient) {
-	utils.Logger.Debug("DCA")
 	opts := &baseOpts
 	opts.StartTime = int(handler.Queue.SeekPosition.Abs().Seconds())
 	err := opts.Validate()
@@ -365,7 +364,7 @@ func (handler *MusicHandler) DCA(client *BotClient) {
 		return
 	}
 
-	formats := handler.Queue.Tracks.Data[0].Video.Formats.WithAudioChannels()
+	formats := handler.Queue.Tracks.Data[0].Video.Formats.Quality("medium")
 	stream, _, err := handler.YoutubeClient.GetStream(handler.Queue.Tracks.Data[0].Video, &formats[0])
 	if err != nil {
 		utils.Logger.Error(err)

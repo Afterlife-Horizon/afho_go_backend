@@ -279,17 +279,16 @@ func AddFavDB(youtubeClient *youtube.Client, db *sql.DB, userId string, url stri
 	var err2 error
 	if isYoutubeSong {
 		var videoId string
-		if isYoutubePlaylist {
-			tmp := utils.SongRegex.FindStringSubmatch(url)
-			for i, name := range utils.SongRegex.SubexpNames() {
-				if i != 0 && name != "" {
-					if tmp[i] == "" {
-						continue
-					}
-					videoId = tmp[i]
+		tmp := utils.SongRegex.FindStringSubmatch(url)
+		for i, name := range utils.SongRegex.SubexpNames() {
+			if i != 0 && name != "" {
+				if tmp[i] == "" {
+					continue
 				}
+				videoId = tmp[i]
 			}
 		}
+
 		videoURL := "https://www.youtube.com/watch?v=" + videoId
 
 		utils.Logger.Debug(videoURL)

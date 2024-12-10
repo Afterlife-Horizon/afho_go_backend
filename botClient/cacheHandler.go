@@ -2,6 +2,7 @@ package botClient
 
 import (
 	"afho_backend/utils"
+	"strings"
 	"sync"
 
 	"github.com/bwmarrin/discordgo"
@@ -195,7 +196,7 @@ func (c *CacheHandler) updateDBUsers() {
 		for _, role := range member.Roles {
 			roles += role + ","
 		}
-		roles = roles[:len(roles)-1]
+		roles = strings.TrimSuffix(roles, ",")
 
 		utils.Logger.Debug("Updating DB User", member.User.Username)
 		_, err := stmt.Exec(member.User.ID, member.User.Username, member.Nick, member.User.Avatar, roles, member.User.Username, member.Nick, member.User.Avatar, roles)
