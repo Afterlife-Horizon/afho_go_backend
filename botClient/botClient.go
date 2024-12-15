@@ -34,7 +34,7 @@ func (b *BotClient) Init(env utils.Env, db *sql.DB) {
 	}
 	b.Session = discord
 
-	discord.ShouldReconnectOnError = false
+	discord.ShouldReconnectOnError = true
 	discord.StateEnabled = true
 	discord.LogLevel = discordgo.LogError
 	utils.Logger.Debug("Discord bot variables set to:", "StateEnabled", discord.StateEnabled, "LogLevel", discord.LogLevel, "ShouldReconnectOnError", discord.ShouldReconnectOnError)
