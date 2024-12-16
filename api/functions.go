@@ -124,7 +124,7 @@ func getBrasilBoardDB(db *sql.DB, members *utils.Collection[*discordgo.Member]) 
 			continue
 		}
 
-		tmp.User.Username = member.User.Username
+		tmp.User.Username = member.DisplayName()
 		tmp.User.DisplayAvatarURL = GetUserAvatar(members, member.User.ID)
 
 		result = append(result, tmp)
@@ -164,7 +164,7 @@ func GetTimesDB(members *utils.Collection[*discordgo.Member], db *sql.DB) []Time
 			continue
 		}
 
-		tmp.User.Username = member.User.Username
+		tmp.User.Username = member.DisplayName()
 		tmp.User.DisplayAvatarURL = GetUserAvatar(members, member.User.ID)
 
 		result = append(result, tmp)
@@ -216,7 +216,7 @@ func GetAchievementsDB(members *utils.Collection[*discordgo.Member], db *sql.DB)
 			tmp := APIAchievement{
 				Counter:  counter,
 				Id:       member.User.ID,
-				Username: member.User.Username,
+				Username: member.DisplayName(),
 			}
 			tmp.Achievements = append(tmp.Achievements, tmpAchievement)
 			tmpAll[userId] = tmp
