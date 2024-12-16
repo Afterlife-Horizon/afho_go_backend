@@ -53,3 +53,10 @@ func InteractionReply(s *discordgo.Session, i *discordgo.InteractionCreate, mess
 		Logger.Error(err.Error())
 	}
 }
+
+func GetUserDisplayName(member *discordgo.Member) string {
+	if member.DisplayName() != "" {
+		return member.DisplayName()
+	}
+	return member.User.Username
+}

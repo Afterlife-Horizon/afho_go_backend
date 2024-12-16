@@ -84,7 +84,8 @@ func GetLevelsDb(db *sql.DB, members *utils.Collection[*discordgo.Member]) []Lev
 			continue
 		}
 
-		tmp.User.Username = member.DisplayName()
+		tmp.User.Username = utils.GetUserDisplayName(member)
+
 		tmp.User.DisplayAvatarURL = GetUserAvatar(members, member.User.ID)
 
 		result = append(result, tmp)
@@ -124,7 +125,7 @@ func getBrasilBoardDB(db *sql.DB, members *utils.Collection[*discordgo.Member]) 
 			continue
 		}
 
-		tmp.User.Username = member.DisplayName()
+		tmp.User.Username = utils.GetUserDisplayName(member)
 		tmp.User.DisplayAvatarURL = GetUserAvatar(members, member.User.ID)
 
 		result = append(result, tmp)
@@ -164,7 +165,7 @@ func GetTimesDB(members *utils.Collection[*discordgo.Member], db *sql.DB) []Time
 			continue
 		}
 
-		tmp.User.Username = member.DisplayName()
+		tmp.User.Username = utils.GetUserDisplayName(member)
 		tmp.User.DisplayAvatarURL = GetUserAvatar(members, member.User.ID)
 
 		result = append(result, tmp)
@@ -216,7 +217,7 @@ func GetAchievementsDB(members *utils.Collection[*discordgo.Member], db *sql.DB)
 			tmp := APIAchievement{
 				Counter:  counter,
 				Id:       member.User.ID,
-				Username: member.DisplayName(),
+				Username: utils.GetUserDisplayName(member),
 			}
 			tmp.Achievements = append(tmp.Achievements, tmpAchievement)
 			tmpAll[userId] = tmp
