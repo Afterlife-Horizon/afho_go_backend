@@ -84,7 +84,7 @@ func GetLevelsDb(db *sql.DB, members *utils.Collection[*discordgo.Member]) []Lev
 			continue
 		}
 
-		tmp.User.Username = member.User.Username
+		tmp.User.Username = member.DisplayName()
 		tmp.User.DisplayAvatarURL = GetUserAvatar(members, member.User.ID)
 
 		result = append(result, tmp)

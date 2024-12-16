@@ -19,11 +19,9 @@ func (handler *Handler) readyMiddleware(c *gin.Context) {
 
 func (handler *Handler) corsMiddleWare(c *gin.Context) {
 	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 	c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	c.Writer.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-	c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length")
-	c.Writer.Header().Set("Access-Control-Max-Age", "3600")
+
 	if c.Request.Method == "OPTIONS" {
 		c.AbortWithStatus(204)
 		return
