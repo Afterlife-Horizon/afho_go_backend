@@ -7,10 +7,12 @@ import (
 	"context"
 	"database/sql"
 	"flag"
+	"fmt"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 )
@@ -22,8 +24,10 @@ var (
 )
 
 var (
-	tickerMinute *time.Ticker = time.NewTicker(time.Minute)
-	env          utils.Env
+	tickerMinute    *time.Ticker  = time.NewTicker(time.Minute)
+	tickerTenSecond *time.Ticker  = time.NewTicker(10 * time.Second)
+	uptime          time.Duration = 0
+	env             utils.Env
 )
 
 var (
@@ -45,6 +49,7 @@ func main() {
 	initDBConnection()
 	initDiscordClient()
 
+	go everyTenSecondLoop()
 	go everyMinuteLoop()
 	go initAPI()
 
@@ -57,6 +62,26 @@ func everyMinuteLoop() {
 		utils.Logger.Debug("Cache and DB update loop run!")
 		discordClient.CacheHandler.UpdateCache()
 		discordClient.CacheHandler.UpdateDB()
+	}
+}
+
+func everyTenSecondLoop() {
+	for range tickerTenSecond.C {
+		uptime = uptime + time.Second*10
+		utils.Logger.Debug("Uptime:", uptime)
+		formattedUptime := utils.FormatTime(uptime)
+		err := discordClient.Session.UpdateStatusComplex(discordgo.UpdateStatusData{
+			Activities: []*discordgo.Activity{
+				{
+					Name: fmt.Sprintf("Uptime: %v", formattedUptime),
+					Type: discordgo.ActivityTypeWatching,
+				},
+			},
+			Status: "online",
+		})
+		if err != nil {
+			utils.Logger.Error(err.Error())
+		}
 	}
 }
 
@@ -101,6 +126,7 @@ func gracefulShutdown() {
 	utils.Logger.Info("Gracefully Shutting Down!")
 
 	tickerMinute.Stop()
+	tickerTenSecond.Stop()
 
 	utils.Logger.Debug("Shutting down API and Discord Client")
 	if err := apiHandler.Server.Shutdown(context.Background()); err != nil {
