@@ -23,6 +23,8 @@ require (
 	github.com/bytedance/sonic/loader v0.2.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
+	github.com/realTristan/disgoauth v1.0.2 // indirect
 	github.com/smartystreets/goconvey v1.8.1 // indirect
 	golang.org/x/term v0.27.0 // indirect
 )

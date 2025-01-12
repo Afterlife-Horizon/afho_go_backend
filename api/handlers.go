@@ -3,13 +3,16 @@ package api
 import (
 	"afho_backend/botClient"
 	"afho_backend/utils"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	supa "github.com/nedpals/supabase-go"
+	"github.com/realTristan/disgoauth"
 )
 
 func (handler *Handler) getLevels(c *gin.Context) {
@@ -76,7 +79,7 @@ func (handler *Handler) connectedMembers(c *gin.Context) {
 }
 
 func (handler *Handler) getBrasilBoard(c *gin.Context) {
-	var brasilBoard []BrasilBoard = getBrasilBoardDB(handler.discordClient.DB, handler.discordClient.CacheHandler.Members)
+	var brasilBoard []BrasilBoard = GetBrasilBoardDB(handler.discordClient.DB, handler.discordClient.CacheHandler.Members)
 
 	sort.Slice(brasilBoard, func(i, j int) bool {
 		return brasilBoard[i].BresilReceived > brasilBoard[j].BresilReceived
@@ -349,4 +352,120 @@ func (handler *Handler) deleteRemoveFav(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{})
+}
+
+func (handler *Handler) LoginHandler(c *gin.Context) {
+	var prompt = ""
+	if c.Query("prompt") != "" {
+		prompt = "&prompt=" + c.Query("prompt")
+	}
+
+	var redirectURI = c.Query("redirect_uri")
+	if redirectURI == "" {
+		redirectURI = handler.discordAuthClient.RedirectURI
+	}
+
+	var url = fmt.Sprintf(
+		"https://discord.com/api/oauth2/authorize?client_id=%s&redirect_uri=%s&response_type=code%s",
+		handler.discordAuthClient.ClientID,
+		redirectURI,
+		prompt,
+	)
+
+	// add scopes
+	url += "&scope="
+	for i, scope := range handler.discordAuthClient.Scopes {
+		if i != len(handler.discordAuthClient.Scopes)-1 {
+			url += scope + "%20"
+			continue
+		}
+		url += scope
+	}
+
+	c.Redirect(302, url)
+}
+
+func (handler *Handler) CallbackHandler(c *gin.Context) {
+	code := c.Query("code")
+	if code == "" {
+		c.AbortWithStatusJSON(400, gin.H{
+			"error": "Missing code",
+		})
+		return
+	}
+
+	redirectURI := c.Query("redirect_uri")
+	if redirectURI == "" {
+		redirectURI = handler.discordAuthClient.RedirectURI
+	}
+
+	if redirectURI != handler.discordAuthClient.RedirectURI {
+		handler.discordAuthClient.RedirectURI = redirectURI
+	}
+
+	accessToken, refresh_token, _, err := handler.discordAuthClient.GetAccessToken(code)
+	if err != nil {
+		c.AbortWithStatusJSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// if expires_in < 10000 {
+	// 	// Refresh token
+	// 	data, err := handler.discordAuthClient.RefreshAccessToken(refresh_token)
+	// 	if err != nil {
+	// 		utils.Logger.Error(err.Error())
+	// 		return
+	// 	}
+
+	// 	accessToken = data["access_token"].(string)
+	// 	refresh_token = data["refresh_token"].(string)
+	// }
+
+	tmpUser, err := disgoauth.GetUserData(accessToken)
+	if err != nil {
+		c.AbortWithStatusJSON(500, gin.H{
+			"error": "Could not get user data",
+		})
+		return
+	}
+
+	user := DiscordUserFromMap(tmpUser)
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"Issuer": "Afterlife Horizon Bot",
+	})
+	signedToken, err := token.SignedString([]byte(handler.discordClient.Config.JWTSecret))
+	if err != nil {
+		utils.Logger.Fatal(err.Error())
+	}
+
+	c.JSON(200, gin.H{
+		"token": signedToken,
+		"user":  user,
+	})
+
+	handler.SaveTokenIntoDB(user, accessToken, refresh_token, signedToken)
+}
+
+func (handler *Handler) SaveTokenIntoDB(user *DiscordApiUser, accessToken, refreshToken string, jwtToken string) {
+	_, err := handler.discordClient.DB.Exec("INSERT INTO discord_tokens (user_id, access_token, refresh_token, jwt_token) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE access_token = ?, refresh_token = ?, jwt_token = ?", user.Id, accessToken, refreshToken, jwtToken, accessToken, refreshToken, jwtToken)
+	if err != nil {
+		utils.Logger.Error(err.Error())
+	}
+}
+
+func (handler *Handler) GetUser(c *gin.Context) {
+	user, exists := c.Get("user")
+	if !exists {
+		c.AbortWithStatusJSON(500, gin.H{
+			"error": "User not found",
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"user": user,
+	})
 }

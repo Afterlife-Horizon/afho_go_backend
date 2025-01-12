@@ -1,10 +1,10 @@
 package api
 
 import (
-	"context"
-
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	supa "github.com/nedpals/supabase-go"
+	"github.com/realTristan/disgoauth"
 )
 
 func (handler *Handler) readyMiddleware(c *gin.Context) {
@@ -30,29 +30,32 @@ func (handler *Handler) corsMiddleWare(c *gin.Context) {
 }
 
 func (handler *Handler) checkUserMiddleware(c *gin.Context) {
-	ok := true
-	userToken := c.Request.Header.Get("Authorization")
-	if userToken == "" {
+	jwt := c.Request.Header.Get("Authorization")
+	if jwt == "" {
 		c.AbortWithStatusJSON(400, gin.H{
 			"error": "Missing Authorization header",
 		})
-		ok = false
 		return
 	}
 
-	user, err := handler.supabaseClient.Auth.User(context.Background(), userToken)
+	accessToken, _, err := handler.GetTokenFromDB(jwt)
 	if err != nil {
 		c.AbortWithStatusJSON(400, gin.H{
 			"error": err.Error(),
 		})
-		ok = false
 		return
 	}
 
-	if ok {
-		c.Set("user", user)
-		c.Next()
+	user, err := disgoauth.GetUserData(accessToken)
+	if err != nil {
+		c.AbortWithStatusJSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
+
+	c.Set("user", user)
+	c.Next()
 }
 
 func (handler *Handler) checkAdminMiddleware(c *gin.Context) {
@@ -74,4 +77,22 @@ func (handler *Handler) checkAdminMiddleware(c *gin.Context) {
 			"error": "User is not admin",
 		})
 	}
+}
+
+func (handler *Handler) GetTokenFromDB(jwt_token string) (string, string, error) {
+	_, err := jwt.Parse(jwt_token, func(token *jwt.Token) (interface{}, error) {
+		return []byte(handler.discordClient.Config.JWTSecret), nil
+	})
+	if err != nil {
+		return "", "", err
+	}
+
+	var AccessToken string
+	var RefreshToken string
+	err = handler.discordClient.DB.QueryRow("SELECT access_token, refresh_token FROM discord_tokens WHERE jwt_token = ?", jwt_token).Scan(&AccessToken, &RefreshToken)
+	if err != nil {
+		return "", "", err
+	}
+
+	return AccessToken, RefreshToken, nil
 }

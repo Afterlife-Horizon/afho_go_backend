@@ -18,9 +18,14 @@ type Env struct {
 	DbPass          string
 	DbName          string
 	DbAddress       string
-	SupaBaseUrl     string
-	SupaKey         string
-	IsProduction    bool
+
+	ClientID     string
+	ClientSecret string
+	RedirectURI  string
+
+	JWTSecret string
+
+	IsProduction bool
 }
 
 type Flags struct {
@@ -90,14 +95,24 @@ func LoadEnv(flags Flags) Env {
 		Logger.Fatal("DB_PASS not found in environment variables")
 	}
 
-	SupaBaseUrl, ok := os.LookupEnv("SUPA_BASE_URL")
-	if !ok || SupaBaseUrl == "" {
-		Logger.Fatal("SUPA_BASE_URL not found in environment variables")
+	ClientID, ok := os.LookupEnv("DISCORD_CLIENT_ID")
+	if !ok || ClientID == "" {
+		Logger.Fatal("DISCORD_CLIENT_ID not found in environment variables")
 	}
 
-	SupaKey, ok := os.LookupEnv("SUPA_KEY")
-	if !ok || SupaKey == "" {
-		Logger.Fatal("SUPA_KEY not found in environment variables")
+	ClientSecret, ok := os.LookupEnv("DISCORD_CLIENT_SECRET")
+	if !ok || ClientSecret == "" {
+		Logger.Fatal("DISCORD_CLIENT_SECRET not found in environment variables")
+	}
+
+	RedirectURI, ok := os.LookupEnv("DISCORD_REDIRECT_URI")
+	if !ok || RedirectURI == "" {
+		Logger.Fatal("DISCORD_REDIRECT_URI not found in environment variables")
+	}
+
+	JWTSecret, ok := os.LookupEnv("JWT_SECRET")
+	if !ok || RedirectURI == "" {
+		Logger.Fatal("JWT_SECRET not found in environment variables")
 	}
 
 	AdminRoleID, ok := os.LookupEnv("ADMIN_ROLE_ID")
@@ -119,8 +134,10 @@ func LoadEnv(flags Flags) Env {
 		DbName:          DbName,
 		DbUser:          DbUser,
 		DbPass:          DbPass,
-		SupaBaseUrl:     SupaBaseUrl,
-		SupaKey:         SupaKey,
+		ClientID:        ClientID,
+		ClientSecret:    ClientSecret,
+		RedirectURI:     RedirectURI,
+		JWTSecret:       JWTSecret,
 		Flags:           flags,
 	}
 }
