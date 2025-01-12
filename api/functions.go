@@ -94,7 +94,7 @@ func GetLevelsDb(db *sql.DB, members *utils.Collection[*discordgo.Member]) []Lev
 	return result
 }
 
-func getBrasilBoardDB(db *sql.DB, members *utils.Collection[*discordgo.Member]) []BrasilBoard {
+func GetBrasilBoardDB(db *sql.DB, members *utils.Collection[*discordgo.Member]) []BrasilBoard {
 	statement, err := db.Prepare("SELECT * FROM Bresil_count")
 	if err != nil {
 		utils.Logger.Error(err.Error())

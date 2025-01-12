@@ -8,21 +8,27 @@ import (
 	"path"
 
 	"github.com/gin-gonic/gin"
-	supa "github.com/nedpals/supabase-go"
+	disgoauth "github.com/realTristan/disgoauth"
 )
 
 type Handler struct {
-	discordClient  *botClient.BotClient
-	router         *gin.Engine
-	supabaseClient *supa.Client
-	Server         *http.Server
+	discordClient     *botClient.BotClient
+	router            *gin.Engine
+	discordAuthClient *disgoauth.Client
+	Server            *http.Server
 }
 
 func (handler *Handler) Init(discordClient *botClient.BotClient) {
 	utils.Logger.Debug("Initialising API handler")
 	handler.discordClient = discordClient
 	utils.Logger.Debug("Creating supabase client")
-	handler.supabaseClient = supa.CreateClient(discordClient.Config.SupaBaseUrl, discordClient.Config.SupaKey)
+
+	handler.discordAuthClient = disgoauth.Init(&disgoauth.Client{
+		ClientID:     discordClient.Config.ClientID,
+		ClientSecret: discordClient.Config.ClientSecret,
+		RedirectURI:  discordClient.Config.RedirectURI,
+		Scopes:       []string{disgoauth.ScopeIdentify},
+	})
 
 	handler.setMode()
 
@@ -54,11 +60,21 @@ func (handler *Handler) initRouter() {
 	handler.router.GET("/getFavs", handler.checkUserMiddleware, handler.getFavs)
 	handler.router.POST("/bresilMember", handler.checkUserMiddleware, handler.postBresil)
 
+	// ------ Discord Auth Routes ------
+	handler.router.GET("/discord/login", handler.LoginHandler)
+	handler.router.GET("/discord/callback", handler.CallbackHandler)
+
+	// ------ User Routes ------
+	userRoutes := handler.router.Group("/user")
+	userRoutes.Use(handler.checkUserMiddleware)
+	userRoutes.GET("", handler.GetUser)
+
 	// ------ Music Routes ------
 	musicGroup := handler.router.Group("/music")
 	musicGroup.GET("/fetch", handler.generalFetch)
 
 	// --- USER ---
+
 	musicGroup.POST("/play", handler.checkUserMiddleware, handler.postPlay)
 	musicGroup.POST("/skip", handler.checkUserMiddleware, handler.postSkip)
 	musicGroup.POST("/pause", handler.checkUserMiddleware, handler.postPause)

@@ -5,6 +5,15 @@ import (
 	"strconv"
 )
 
+type DbUser struct {
+	ID          string   `json:"id"`
+	Username    string   `json:"username"`
+	NickName    string   `json:"nickname"`
+	Avatar      string   `json:"avatar"`
+	Roles       []string `json:"roles"`
+	LodeStoneId string   `json:"lodestone_id"`
+}
+
 type BrasilBoard struct {
 	User           User `json:"user"`
 	BresilReceived int  `json:"bresil_received"`
@@ -15,6 +24,143 @@ type User struct {
 	Username         string `json:"displayName"`
 	User_id          string `json:"user_id"`
 	DisplayAvatarURL string `json:"displayAvatarURL"`
+}
+
+// accent_color int
+// avatar string
+// avatar_decoration_data	DiscordApiAvatarDecorationData
+// banner string
+// banner_color string
+// clan string
+// discriminator string
+// email string
+// flags int
+// global_name string
+// id string
+// locale string
+// premium_type int
+// primary_guild string
+// public_flags int
+// username string
+// verified bool
+
+type DiscordApiUser struct {
+	Id                     string   `json:"id"`
+	Username               string   `json:"username"`
+	Discriminator          string   `json:"discriminator"`
+	Global_name            *string  `json:"global_name"`
+	Avatar                 *string  `json:"avatar"`
+	System                 *bool    `json:"system"`
+	MfaEnabled             *bool    `json:"mfa_enabled"`
+	Banner                 *string  `json:"banner"`
+	Accent_color           *float64 `json:"accent_color"`
+	Locale                 *string  `json:"locale"`
+	Verified               *bool    `json:"verified"`
+	Flags                  *float64 `json:"flags"`
+	PremiumType            *float64 `json:"premium_type"`
+	PublicFlags            *float64 `json:"public_flags"`
+	Avatar_decoration_data *DiscordApiAvatarDecorationData
+}
+
+func DiscordUserFromMap(m map[string]interface{}) *DiscordApiUser {
+
+	// Setup nullable fields
+	var global_name *string
+	if m["global_name"] != nil {
+		value := m["global_name"].(string)
+		global_name = &value
+	}
+
+	var avatar *string
+	if m["avatar"] != nil {
+		value := m["avatar"].(string)
+		avatar = &value
+	}
+
+	var system *bool
+	if m["system"] != nil {
+		value := m["system"].(bool)
+		system = &value
+	}
+
+	var mfaEnabled *bool
+	if m["mfa_enabled"] != nil {
+		value := m["mfa_enabled"].(bool)
+		mfaEnabled = &value
+	}
+
+	var banner *string
+	if m["banner"] != nil {
+		value := m["banner"].(string)
+		banner = &value
+	}
+
+	var accent_color *float64
+	if m["accent_color"] != nil {
+		value := m["accent_color"].(float64)
+		accent_color = &value
+	}
+
+	var locale *string
+	if m["locale"] != nil {
+		value := m["locale"].(string)
+		locale = &value
+	}
+
+	var verified *bool
+	if m["verified"] != nil {
+		value := m["verified"].(bool)
+		verified = &value
+	}
+
+	var flags *float64
+	if m["flags"] != nil {
+		value := m["flags"].(float64)
+		flags = &value
+	}
+
+	var premium_type *float64
+	if m["premium_type"] != nil {
+		value := m["premium_type"].(float64)
+		premium_type = &value
+	}
+
+	var public_flags *float64
+	if m["public_flags"] != nil {
+		value := m["public_flags"].(float64)
+		public_flags = &value
+	}
+
+	var avatar_decoration_data *DiscordApiAvatarDecorationData
+	if m["avatar_decoration_data"] != nil {
+		avatar_decoration_data = &DiscordApiAvatarDecorationData{
+			Asset:  m["avatar_decoration_data"].(map[string]interface{})["asset"].(string),
+			Sku_id: m["avatar_decoration_data"].(map[string]interface{})["sku_id"].(string),
+		}
+	}
+
+	return &DiscordApiUser{
+		Id:                     m["id"].(string),
+		Username:               m["username"].(string),
+		Discriminator:          m["discriminator"].(string),
+		Global_name:            global_name,
+		Avatar:                 avatar,
+		System:                 system,
+		MfaEnabled:             mfaEnabled,
+		Banner:                 banner,
+		Accent_color:           accent_color,
+		Locale:                 locale,
+		Verified:               verified,
+		Flags:                  flags,
+		PremiumType:            premium_type,
+		PublicFlags:            public_flags,
+		Avatar_decoration_data: avatar_decoration_data,
+	}
+}
+
+type DiscordApiAvatarDecorationData struct {
+	Asset  string `json:"asset"`
+	Sku_id string `json:"sku_id"`
 }
 
 type Effects struct {
