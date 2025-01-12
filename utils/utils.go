@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"math/rand"
 	"regexp"
 	"time"
 
@@ -59,4 +60,17 @@ func GetUserDisplayName(member *discordgo.Member) string {
 		return member.DisplayName()
 	}
 	return member.User.Username
+}
+
+func RandomString(n int) string {
+	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[RandomInt(0, len(letterRunes)-1)]
+	}
+	return string(b)
+}
+
+func RandomInt(i1, i2 int) int {
+	return i1 + rand.Intn(i2-i1+1)
 }

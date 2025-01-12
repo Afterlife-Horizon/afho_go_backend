@@ -433,8 +433,12 @@ func (handler *Handler) CallbackHandler(c *gin.Context) {
 
 	user := DiscordUserFromMap(tmpUser)
 
+	randomString := utils.RandomString(32)
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"Issuer": "Afterlife Horizon Bot",
+		"Issuer":       "Afterlife Horizon Bot",
+		"user":         user.Id,
+		"randomString": randomString,
 	})
 	signedToken, err := token.SignedString([]byte(handler.discordClient.Config.JWTSecret))
 	if err != nil {
@@ -450,7 +454,7 @@ func (handler *Handler) CallbackHandler(c *gin.Context) {
 }
 
 func (handler *Handler) SaveTokenIntoDB(user *DiscordApiUser, accessToken, refreshToken string, jwtToken string) {
-	_, err := handler.discordClient.DB.Exec("INSERT INTO discord_tokens (user_id, access_token, refresh_token, jwt_token) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE access_token = ?, refresh_token = ?, jwt_token = ?", user.Id, accessToken, refreshToken, jwtToken, accessToken, refreshToken, jwtToken)
+	_, err := handler.discordClient.DB.Exec("INSERT INTO discord_tokens (user_id, access_token, refresh_token, jwt_token) VALUES (?, ?, ?, ?)", user.Id, accessToken, refreshToken, jwtToken)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 	}
